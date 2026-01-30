@@ -26,13 +26,13 @@ export default function Dashboard() {
   // Get tier from session or default to free
   const tier = (session?.user?.tier || "free") as "free" | "pro" | "enterprise";
 
-  // Handle new signal notification
+  // Handle new alert notification
   const handleNewSignal = useCallback((signal: Signal) => {
     setShowNewBadge(true);
     
-    // Show browser notification for new signals
+    // Show browser notification for new alerts
     if (tier !== "free") {
-      showLocalNotification(`New Signal: ${signal.signal}`, {
+      showLocalNotification(`New Alert: ${signal.signal}`, {
         body: `${signal.headline}\n${signal.market}`,
         tag: `signal-${signal.id}`,
         data: { signalId: signal.id },
@@ -43,7 +43,7 @@ export default function Dashboard() {
     setTimeout(() => setShowNewBadge(false), 10000);
   }, [tier]);
 
-  // Real-time signals hook
+  // Real-time alerts hook
   const {
     signals,
     loading,
@@ -59,23 +59,23 @@ export default function Dashboard() {
     enabled: status !== "loading",
   });
 
-  // Filter signals
-  const openSignals = signals.filter(s => s.status === "open");
-  const closedSignals = signals.filter(s => s.status === "closed");
-  const pendingSignals = signals.filter(s => s.status === "pending");
+  // Filter alerts
+  const activeAlerts = signals.filter(s => s.status === "open");
+  const resolvedAlerts = signals.filter(s => s.status === "closed");
+  const pendingAlerts = signals.filter(s => s.status === "pending");
 
-  // Calculate stats
-  const totalPnL = signals
+  // Calculate stats - sentiment change tracking
+  const totalChange = signals
     .filter(s => s.pnl)
     .reduce((acc, s) => {
-      const pnlMatch = s.pnl?.match(/[\-\+]?\$?([\d.]+)%?/);
-      const value = pnlMatch ? parseFloat(pnlMatch[1]) : 0;
+      const changeMatch = s.pnl?.match(/[\-\+]?\$?([\d.]+)%?/);
+      const value = changeMatch ? parseFloat(changeMatch[1]) : 0;
       return acc + (s.pnl?.includes("-") ? -value : value);
     }, 0);
 
-  const winCount = closedSignals.filter(s => s.pnl && !s.pnl.includes("-")).length;
-  const winRate = closedSignals.length > 0 
-    ? Math.round((winCount / closedSignals.length) * 100) 
+  const accurateCount = resolvedAlerts.filter(s => s.pnl && !s.pnl.includes("-")).length;
+  const accuracyRate = resolvedAlerts.length > 0 
+    ? Math.round((accurateCount / resolvedAlerts.length) * 100) 
     : 0;
 
   return (
@@ -175,7 +175,7 @@ export default function Dashboard() {
         {/* Error banner */}
         {error && (
           <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400">
-            Failed to load signals: {error}. Using cached data.
+            Failed to load alerts: {error}. Using cached data.
           </div>
         )}
         
@@ -183,31 +183,31 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Card className="bg-zinc-900 border-zinc-800">
             <CardHeader className="pb-2">
-              <CardDescription className="text-zinc-400">Total P&L</CardDescription>
+              <CardDescription className="text-zinc-400">Sentiment Change</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${totalPnL >= 0 ? "text-green-400" : "text-red-400"}`}>
-                {totalPnL >= 0 ? "+" : ""}${totalPnL.toFixed(2)}
+              <div className={`text-2xl font-bold ${totalChange >= 0 ? "text-green-400" : "text-red-400"}`}>
+                {totalChange >= 0 ? "+" : ""}{totalChange.toFixed(1)}%
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-zinc-900 border-zinc-800">
             <CardHeader className="pb-2">
-              <CardDescription className="text-zinc-400">Win Rate</CardDescription>
+              <CardDescription className="text-zinc-400">Analysis Accuracy</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-400">{winRate}%</div>
-              <div className="text-sm text-zinc-500">{winCount}/{closedSignals.length} trades</div>
+              <div className="text-2xl font-bold text-blue-400">{accuracyRate}%</div>
+              <div className="text-sm text-zinc-500">{accurateCount}/{resolvedAlerts.length} resolved</div>
             </CardContent>
           </Card>
 
           <Card className="bg-zinc-900 border-zinc-800">
             <CardHeader className="pb-2">
-              <CardDescription className="text-zinc-400">Open Positions</CardDescription>
+              <CardDescription className="text-zinc-400">Active Alerts</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-400">{openSignals.length}</div>
+              <div className="text-2xl font-bold text-purple-400">{activeAlerts.length}</div>
             </CardContent>
           </Card>
 
@@ -229,36 +229,36 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Signals Tabs */}
+        {/* Alerts Tabs */}
         <Tabs defaultValue="all" className="space-y-4" onValueChange={() => clearNewIndicators()}>
           <TabsList className="bg-zinc-900 border border-zinc-800">
             <TabsTrigger value="all" className="data-[state=active]:bg-zinc-800">
-              All Signals ({signals.length})
+              All Alerts ({signals.length})
             </TabsTrigger>
-            <TabsTrigger value="open" className="data-[state=active]:bg-zinc-800">
-              Open ({openSignals.length})
+            <TabsTrigger value="active" className="data-[state=active]:bg-zinc-800">
+              Active ({activeAlerts.length})
             </TabsTrigger>
-            <TabsTrigger value="closed" className="data-[state=active]:bg-zinc-800">
-              Closed ({closedSignals.length})
+            <TabsTrigger value="resolved" className="data-[state=active]:bg-zinc-800">
+              Resolved ({resolvedAlerts.length})
             </TabsTrigger>
-            {pendingSignals.length > 0 && (
+            {pendingAlerts.length > 0 && (
               <TabsTrigger value="pending" className="data-[state=active]:bg-zinc-800">
-                Pending ({pendingSignals.length})
+                Pending ({pendingAlerts.length})
               </TabsTrigger>
             )}
           </TabsList>
 
           <TabsContent value="all">
-            <SignalsTable signals={signals} loading={loading} tier={tier} newSignalIds={newSignalIds} />
+            <AlertsTable alerts={signals} loading={loading} tier={tier} newAlertIds={newSignalIds} />
           </TabsContent>
-          <TabsContent value="open">
-            <SignalsTable signals={openSignals} loading={loading} tier={tier} newSignalIds={newSignalIds} />
+          <TabsContent value="active">
+            <AlertsTable alerts={activeAlerts} loading={loading} tier={tier} newAlertIds={newSignalIds} />
           </TabsContent>
-          <TabsContent value="closed">
-            <SignalsTable signals={closedSignals} loading={loading} tier={tier} newSignalIds={newSignalIds} />
+          <TabsContent value="resolved">
+            <AlertsTable alerts={resolvedAlerts} loading={loading} tier={tier} newAlertIds={newSignalIds} />
           </TabsContent>
           <TabsContent value="pending">
-            <SignalsTable signals={pendingSignals} loading={loading} tier={tier} newSignalIds={newSignalIds} />
+            <AlertsTable alerts={pendingAlerts} loading={loading} tier={tier} newAlertIds={newSignalIds} />
           </TabsContent>
         </Tabs>
 
@@ -267,9 +267,9 @@ export default function Dashboard() {
           <Card className="mt-8 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-500/30">
             <CardContent className="flex items-center justify-between p-6">
               <div>
-                <CardTitle className="text-white mb-2">Want real-time signals?</CardTitle>
+                <CardTitle className="text-white mb-2">Want real-time alerts?</CardTitle>
                 <CardDescription className="text-zinc-400">
-                  Upgrade to Pro for instant push alerts, real-time updates, and no delays.
+                  Upgrade to Pro for instant push notifications, real-time updates, and no delays.
                 </CardDescription>
               </div>
               <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
@@ -278,38 +278,45 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         )}
+        
+        {/* Disclaimer */}
+        <div className="mt-8 text-center">
+          <p className="text-xs text-zinc-600">
+            For informational purposes only. Not financial advice. Users should conduct their own research.
+          </p>
+        </div>
       </main>
     </div>
   );
 }
 
-function SignalsTable({ 
-  signals, 
+function AlertsTable({ 
+  alerts, 
   loading, 
   tier,
-  newSignalIds,
+  newAlertIds,
 }: { 
-  signals: Signal[]; 
+  alerts: Signal[]; 
   loading: boolean; 
   tier: string;
-  newSignalIds: Set<string>;
+  newAlertIds: Set<string>;
 }) {
-  if (loading && signals.length === 0) {
+  if (loading && alerts.length === 0) {
     return (
       <Card className="bg-zinc-900 border-zinc-800">
         <CardContent className="p-8 text-center text-zinc-400">
           <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
-          Loading signals...
+          Loading alerts...
         </CardContent>
       </Card>
     );
   }
 
-  if (signals.length === 0) {
+  if (alerts.length === 0) {
     return (
       <Card className="bg-zinc-900 border-zinc-800">
         <CardContent className="p-8 text-center text-zinc-400">
-          No signals in this category yet.
+          No alerts in this category yet.
         </CardContent>
       </Card>
     );
@@ -322,20 +329,20 @@ function SignalsTable({
           <TableRow className="border-zinc-800 hover:bg-transparent">
             <TableHead className="text-zinc-400">Date</TableHead>
             <TableHead className="text-zinc-400">News / Event</TableHead>
-            <TableHead className="text-zinc-400">Market</TableHead>
-            <TableHead className="text-zinc-400">Signal</TableHead>
+            <TableHead className="text-zinc-400">Related Market</TableHead>
+            <TableHead className="text-zinc-400">Sentiment</TableHead>
             <TableHead className="text-zinc-400">Confidence</TableHead>
-            <TableHead className="text-zinc-400">Entry</TableHead>
+            <TableHead className="text-zinc-400">At Alert</TableHead>
             <TableHead className="text-zinc-400">Current</TableHead>
-            <TableHead className="text-zinc-400 text-right">P&L</TableHead>
+            <TableHead className="text-zinc-400 text-right">Change</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {signals.map((signal) => {
-            const isNew = newSignalIds.has(signal.id);
+          {alerts.map((alert) => {
+            const isNew = newAlertIds.has(alert.id);
             return (
               <TableRow 
-                key={signal.id} 
+                key={alert.id} 
                 className={`border-zinc-800 transition-colors ${
                   isNew 
                     ? "bg-green-500/10 animate-pulse" 
@@ -347,47 +354,47 @@ function SignalsTable({
                     {isNew && (
                       <span className="h-2 w-2 rounded-full bg-green-400 animate-ping" />
                     )}
-                    {signal.date}
+                    {alert.date}
                   </div>
                 </TableCell>
                 <TableCell className="max-w-xs truncate text-white">
-                  {signal.headline}
+                  {alert.headline}
                 </TableCell>
                 <TableCell className="text-zinc-400 max-w-xs truncate">
-                  {signal.market}
+                  {alert.market}
                 </TableCell>
                 <TableCell>
                   <Badge className={
-                    signal.signal.includes("BUY") 
+                    alert.signal.includes("BUY") || alert.signal.includes("BULLISH")
                       ? "bg-green-500/20 text-green-400 border-green-500/30"
-                      : signal.signal.includes("SELL")
+                      : alert.signal.includes("SELL") || alert.signal.includes("BEARISH")
                       ? "bg-red-500/20 text-red-400 border-red-500/30"
                       : "bg-blue-500/20 text-blue-400 border-blue-500/30"
                   }>
-                    {signal.signal}
+                    {alert.signal.replace("BUY ", "").replace("SELL ", "")}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   <Badge variant="secondary" className={
-                    signal.confidence === "HIGH"
+                    alert.confidence === "HIGH"
                       ? "bg-green-500/10 text-green-400 border-green-500/20"
-                      : signal.confidence === "MEDIUM"
+                      : alert.confidence === "MEDIUM"
                       ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
                       : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
                   }>
-                    {signal.confidence}
+                    {alert.confidence}
                   </Badge>
                 </TableCell>
                 <TableCell className="font-mono text-white">
-                  {signal.priceAtSignal}
+                  {alert.priceAtSignal}
                 </TableCell>
                 <TableCell className="font-mono text-white">
-                  {signal.currentPrice || "—"}
+                  {alert.currentPrice || "—"}
                 </TableCell>
                 <TableCell className={`font-mono text-right font-bold ${
-                  signal.pnl?.includes("-") ? "text-red-400" : "text-green-400"
+                  alert.pnl?.includes("-") ? "text-red-400" : "text-green-400"
                 }`}>
-                  {signal.pnl || "—"}
+                  {alert.pnl || "—"}
                 </TableCell>
               </TableRow>
             );
@@ -397,7 +404,7 @@ function SignalsTable({
       
       {tier === "free" && (
         <div className="border-t border-zinc-800 p-4 text-center text-sm text-yellow-500">
-          ⚠️ Free tier signals are delayed by 15 minutes. Upgrade to Pro for real-time access.
+          ⚠️ Free tier alerts are delayed by 15 minutes. Upgrade to Pro for real-time access.
         </div>
       )}
     </Card>

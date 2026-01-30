@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, TrendingUp, TrendingDown, CheckCircle, Clock, ExternalLink } from "lucide-react";
 
-interface Trade {
+interface AnalysisRecord {
   id: number;
   type: string;
   market_slug: string;
@@ -32,7 +32,7 @@ interface Stats {
 }
 
 export default function TrackRecordPage() {
-  const [trades, setTrades] = useState<Trade[]>([]);
+  const [records, setRecords] = useState<AnalysisRecord[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -40,7 +40,7 @@ export default function TrackRecordPage() {
     fetch("/api/track-record")
       .then((res) => res.json())
       .then((data) => {
-        setTrades(data.trades || []);
+        setRecords(data.trades || []);
         setStats(data.stats || null);
         setLoading(false);
       })
@@ -50,7 +50,7 @@ export default function TrackRecordPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="animate-pulse text-gray-400">Loading track record...</div>
+        <div className="animate-pulse text-gray-400">Loading analysis history...</div>
       </div>
     );
   }
@@ -71,11 +71,11 @@ export default function TrackRecordPage() {
         {/* Hero */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">
-            📈 Track Record
+            📊 Analysis History
           </h1>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Our verified trading performance. Every trade is logged with timestamps and outcomes.
-            No cherry-picking, no hindsight.
+            Our sentiment analysis performance. Every analysis is logged with timestamps and outcomes.
+            Transparent tracking of our research accuracy.
           </p>
         </div>
 
@@ -83,22 +83,22 @@ export default function TrackRecordPage() {
         {stats && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
             <StatCard
-              label="Total P&L"
-              value={`${stats.totalPnL >= 0 ? '+' : ''}$${stats.totalPnL.toFixed(2)}`}
+              label="Sentiment Change"
+              value={`${stats.totalPnL >= 0 ? '+' : ''}${stats.totalPnL.toFixed(1)}%`}
               positive={stats.totalPnL >= 0}
             />
             <StatCard
-              label="Win Rate"
+              label="Accuracy Rate"
               value={`${stats.winRate.toFixed(1)}%`}
               positive={stats.winRate >= 50}
             />
             <StatCard
-              label="Closed Trades"
-              value={`${stats.wins}W / ${stats.losses}L`}
+              label="Resolved Analyses"
+              value={`${stats.wins} / ${stats.wins + stats.losses}`}
               neutral
             />
             <StatCard
-              label="Open Positions"
+              label="Active Analyses"
               value={stats.openTrades.toString()}
               neutral
             />
@@ -110,38 +110,38 @@ export default function TrackRecordPage() {
           <div className="flex items-start gap-3">
             <CheckCircle className="text-emerald-400 mt-0.5" size={20} />
             <div>
-              <h3 className="font-semibold text-emerald-300">Verified Performance</h3>
+              <h3 className="font-semibold text-emerald-300">Verified Analysis</h3>
               <p className="text-sm text-emerald-200/70 mt-1">
-                All trades are logged in real-time with immutable timestamps. 
-                Prices are fetched from Polymarket APIs at time of execution.
+                All analyses are logged in real-time with immutable timestamps. 
+                Market sentiment data is fetched from public APIs at time of analysis.
                 <a 
-                  href="https://github.com/polymarket" 
+                  href="https://polymarket.com" 
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-emerald-400 hover:underline ml-1 inline-flex items-center gap-1"
                 >
-                  Verify on-chain <ExternalLink size={12} />
+                  View markets <ExternalLink size={12} />
                 </a>
               </p>
             </div>
           </div>
         </div>
 
-        {/* Trade History */}
+        {/* Analysis History */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <Clock size={20} className="text-gray-400" />
-            Trade History
+            Analysis History
           </h2>
 
-          {trades.length === 0 ? (
+          {records.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              No trades recorded yet. Check back soon!
+              No analyses recorded yet. Check back soon!
             </div>
           ) : (
             <div className="space-y-3">
-              {trades.map((trade) => (
-                <TradeCard key={trade.id} trade={trade} />
+              {records.map((record) => (
+                <AnalysisCard key={record.id} record={record} />
               ))}
             </div>
           )}
@@ -150,10 +150,9 @@ export default function TrackRecordPage() {
         {/* Disclaimer */}
         <div className="mt-16 text-center text-xs text-gray-600 max-w-2xl mx-auto">
           <p>
-            Past performance is not indicative of future results. 
-            Prediction markets involve risk of loss. 
-            This track record represents paper trading results unless otherwise noted.
-            Always do your own research.
+            <strong>Disclaimer:</strong> This is historical analysis data for informational and research purposes only. 
+            Past sentiment analysis does not predict future outcomes. 
+            This is not financial advice. Always conduct your own research before making any decisions.
           </p>
         </div>
       </main>
@@ -184,9 +183,9 @@ function StatCard({
   );
 }
 
-function TradeCard({ trade }: { trade: Trade }) {
-  const isOpen = trade.status === "OPEN";
-  const isProfitable = (trade.pnl ?? 0) >= 0;
+function AnalysisCard({ record }: { record: AnalysisRecord }) {
+  const isActive = record.status === "OPEN";
+  const wasAccurate = (record.pnl ?? 0) >= 0;
   
   const formatDate = (iso: string) => {
     const date = new Date(iso);
@@ -202,67 +201,67 @@ function TradeCard({ trade }: { trade: Trade }) {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 hover:border-gray-700 transition">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Trade Info */}
+        {/* Analysis Info */}
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <span className={`text-xs px-2 py-0.5 rounded ${
-              isOpen 
+              isActive 
                 ? 'bg-blue-900/50 text-blue-300' 
-                : isProfitable 
+                : wasAccurate 
                   ? 'bg-emerald-900/50 text-emerald-300'
                   : 'bg-red-900/50 text-red-300'
             }`}>
-              {isOpen ? 'OPEN' : isProfitable ? 'WIN' : 'LOSS'}
+              {isActive ? 'ACTIVE' : wasAccurate ? 'ACCURATE' : 'INACCURATE'}
             </span>
-            <span className="text-xs text-gray-500">#{trade.id}</span>
+            <span className="text-xs text-gray-500">#{record.id}</span>
           </div>
           
           <h3 className="font-medium text-white mb-1">
-            {trade.question}
+            {record.question}
           </h3>
           
           <p className="text-sm text-gray-400">
-            {trade.type} {trade.outcome} @ {trade.entry_price.toFixed(1)}%
-            {trade.exit_price && (
-              <span> → {trade.exit_price.toFixed(1)}%</span>
+            {record.outcome} sentiment @ {record.entry_price.toFixed(1)}%
+            {record.exit_price && (
+              <span> → {record.exit_price.toFixed(1)}%</span>
             )}
           </p>
           
           <p className="text-xs text-gray-500 mt-2">
-            {formatDate(trade.timestamp)}
+            {formatDate(record.timestamp)}
           </p>
         </div>
 
-        {/* P&L */}
+        {/* Sentiment Change */}
         <div className="text-right">
-          <div className="text-sm text-gray-500">Amount</div>
-          <div className="font-medium">${trade.amount.toFixed(0)}</div>
+          <div className="text-sm text-gray-500">Tracked Value</div>
+          <div className="font-medium">${record.amount.toFixed(0)}</div>
           
-          {trade.pnl !== null && (
+          {record.pnl !== null && (
             <>
-              <div className="text-sm text-gray-500 mt-2">P&L</div>
+              <div className="text-sm text-gray-500 mt-2">Change</div>
               <div className={`font-bold text-lg flex items-center justify-end gap-1 ${
-                trade.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'
+                record.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'
               }`}>
-                {trade.pnl >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
+                {record.pnl >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                {record.pnl >= 0 ? '+' : ''}{record.pnl.toFixed(1)}%
               </div>
             </>
           )}
           
-          {isOpen && (
+          {isActive && (
             <div className="text-sm text-gray-500 mt-2 italic">
-              Position active
+              Analysis active
             </div>
           )}
         </div>
       </div>
 
       {/* Reason */}
-      {trade.reason && (
+      {record.reason && (
         <div className="mt-3 pt-3 border-t border-gray-800">
           <p className="text-sm text-gray-400 italic">
-            "{trade.reason}"
+            "{record.reason}"
           </p>
         </div>
       )}

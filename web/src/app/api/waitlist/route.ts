@@ -1,27 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
+import { PrismaClient } from "@prisma/client";
 
-const WAITLIST_FILE = path.join(process.cwd(), "..", "data", "waitlist.json");
-
-interface WaitlistEntry {
-  email: string;
-  timestamp: string;
-  source: string;
-}
-
-async function getWaitlist(): Promise<WaitlistEntry[]> {
-  try {
-    const data = await fs.readFile(WAITLIST_FILE, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-async function saveWaitlist(entries: WaitlistEntry[]): Promise<void> {
-  await fs.writeFile(WAITLIST_FILE, JSON.stringify(entries, null, 2));
-}
+const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,27 +14,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const waitlist = await getWaitlist();
-
-    // Check if already on waitlist
-    if (waitlist.some((entry) => entry.email === email)) {
-      return NextResponse.json(
-        { message: "Already on waitlist", alreadyExists: true },
-        { status: 200 }
-      );
+    try {
+      await prisma.waitlist.create({
+        data: {
+          email,
+          source: "landing-page",
+        },
+      });
+    } catch (e: any) {
+      // P2002 = Unique constraint failed (email already exists)
+      if (e.code === 'P2002') {
+        return NextResponse.json(
+          { message: "Already on waitlist", alreadyExists: true },
+          { status: 200 }
+        );
+      }
+      throw e;
     }
 
-    // Add to waitlist
-    waitlist.push({
-      email,
-      timestamp: new Date().toISOString(),
-      source: "landing-page",
-    });
-
-    await saveWaitlist(waitlist);
+    const count = await prisma.waitlist.count();
 
     return NextResponse.json(
-      { message: "Successfully joined waitlist", count: waitlist.length },
+      { message: "Successfully joined waitlist", count },
       { status: 200 }
     );
   } catch (error) {
@@ -68,10 +49,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const waitlist = await getWaitlist();
-    return NextResponse.json({ count: waitlist.length });
+    const count = await prisma.waitlist.count();
+    return NextResponse.json({ count });
   } catch (error) {
     console.error("Waitlist error:", error);
+    // Fallback if DB is down/not configured
     return NextResponse.json({ count: 0 });
   }
 }

@@ -62,3 +62,10 @@ model VerificationToken {
 
   @@id([identifier, token])
 }
+
+model Waitlist {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  source    String?  @default("landing-page")
+  createdAt DateTime @default(now())
+}

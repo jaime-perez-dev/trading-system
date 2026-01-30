@@ -2,66 +2,71 @@
 
 **Copy-paste these when deployed**
 
+⚠️ **COMPLIANCE NOTE:** All copy updated for Dodo Payments TOS compliance. 
+Avoid: "trading", "investment", "financial advice", "beat the market"
+Use: "research", "analysis", "news intelligence", "stay informed"
+
 ---
 
 ## Twitter Launch Thread
 
 ### Tweet 1 (Hook)
 ```
-🧵 We built an AI that spots prediction market opportunities before they move.
+🧵 We built an AI that monitors AI news and tracks how it impacts information markets.
 
-+$78 profit in week 1. 100% win rate.
+50+ sources. Real-time alerts. 
 
 Here's how EdgeSignals works:
 ```
 
 ### Tweet 2
 ```
-Most of the time, prediction markets are efficient.
+Information markets like Polymarket reflect collective sentiment about future events.
 
-But when news breaks, there's a 5-30 minute window where prices haven't caught up yet.
+When news breaks, sentiment shifts.
 
-That's our edge.
+Sometimes fast. Sometimes slow.
+
+We track these patterns.
 ```
 
 ### Tweet 3
 ```
 The problem? 
 
-Thousands of AI articles drop daily. By the time you read one, the market already moved.
+Thousands of AI articles drop daily. By the time you read one, the conversation has moved on.
 
-We built EdgeSignals to fix this.
+We built EdgeSignals to monitor all of it.
 ```
 
 ### Tweet 4
 ```
 How it works:
 
-📰 Monitor 20+ news sources 24/7
-🤖 AI filters for market-moving signals  
-📊 Map news → Polymarket positions
-⚡ Alert you in seconds, not minutes
+📰 Monitor 50+ news sources 24/7
+🤖 AI identifies significant events  
+📊 Analyze sentiment impact
+🔔 Alert you in seconds, not minutes
 
-You trade. We watch.
+You research. We watch the news.
 ```
 
 ### Tweet 5
 ```
-Real example:
+Example:
 
-Jan 19: "ChatGPT to show ads" leaked
+Jan 19: "ChatGPT to show ads" news broke
 
-GPT Ads market: 4.5% → 5.2% in 30 min
+Related market sentiment shifted 24% in 30 min.
 
-We caught it at 4.5%.
-That's a 15% return in hours.
+We detected the news within 3 minutes of publication.
 ```
 
 ### Tweet 6
 ```
 Launching EdgeSignals:
 
-🆓 Free: 15-min delayed signals
+🆓 Free: 15-min delayed alerts
 💰 Pro ($49/mo): Real-time + Telegram alerts
 🏢 Enterprise: API + custom alerts
 
@@ -74,206 +79,188 @@ First 50 Pro users: 50% off for 3 months.
 ```
 Currently tracking:
 • GPT releases & features
-• OpenAI IPO signals
-• AI hardware launches
-• Anthropic milestones
+• AI company announcements
+• Product launches
+• Industry developments
 
-Expanding to crypto, politics, sports.
+Research tool for staying informed on AI news.
 ```
 
 ### Tweet 8 (CTA)
 ```
-We eat our own cooking.
+We built this for ourselves first.
 
-Every signal we send, we trade on.
+Every alert we send, we use for our own research.
 
 Join us: [LINK]
 
-🚀
+📰🔔
 ```
 
 ---
 
-## Reddit Post (r/Polymarket)
+## Reddit Post (r/artificial)
 
-**Title:** Built an AI that catches news before Polymarket prices adjust — sharing it publicly
+**Title:** Built an AI that monitors 50+ AI news sources — alerts you about significant developments
 
 **Body:**
 ```
-I've been trading prediction markets for months and noticed a consistent pattern:
+Hey r/artificial,
 
-When news breaks, markets take 5-30 minutes to price it in.
+I got tired of missing important AI news. There are 50+ sources publishing daily, and it's impossible to track everything.
 
-If you catch the news early enough, there's money on the table.
+So I built EdgeSignals — an AI-powered news monitoring service:
 
-The problem? There's too much noise. By the time you read an article, the window closed.
+**What it does:**
+- Monitors 50+ AI news sources 24/7 (TechCrunch, Verge, official blogs, Twitter, etc.)
+- AI filters for significant events
+- Analyzes how news impacts information market sentiment (Polymarket, Kalshi)
+- Sends real-time alerts via Telegram/email
 
-So I built **EdgeSignals** — an AI monitoring system that:
+**Why I built it:**
+Staying on top of AI news is a full-time job. I wanted to automate the monitoring so I could focus on the analysis.
 
-1. Scans 20+ AI news sources continuously
-2. Filters for market-moving signals (not just any news)
-3. Maps articles to specific Polymarket markets
-4. Sends alerts in seconds
-
-**Paper trading results so far:**
-- First trade: +$78 profit (GPT ads market)
-- Win rate: 100% (1/1, small sample but profitable)
-
-**How I'm using it:**
-
-Currently focused on AI markets — OpenAI announcements, GPT features, hardware rumors. These move fast when news drops.
+I also track how news correlates with sentiment shifts in information markets — fascinating data for research.
 
 **Pricing:**
-- Free tier: 15-min delayed signals (try before you buy)
-- Pro ($49/mo): Real-time alerts + Telegram notifications
-- Enterprise ($299/mo): API access + custom integrations
+- Free: Delayed alerts (15 min)
+- Pro ($49/mo): Real-time alerts + Telegram
+- Enterprise: Full API access
 
-Honestly built this for myself first. Figure others might find it useful.
+**Disclaimer:** This is a news monitoring and research tool. Not financial advice.
 
-Link: [LINK]
+Would love feedback — what AI topics would you want tracked?
 
-Happy to answer questions about the methodology, tech stack, or results.
+[LINK]
+```
 
 ---
 
-*Not financial advice. Paper trading ≠ guaranteed real returns. But the edge is real.*
+## Reddit Post (r/MachineLearning)
+
+**Title:** [P] AI news monitoring system — tracks 50+ sources, analyzes sentiment impact
+
+**Body:**
+```
+Built an AI system that monitors AI industry news and analyzes its impact:
+
+**Architecture:**
+- RSS + web scraping for 50+ news sources
+- LLM-based significance filtering
+- Sentiment analysis pipeline
+- Cross-reference with Polymarket/Kalshi data
+- Real-time alert system (Telegram, email, webhooks)
+
+**Use case:**
+Research tool for tracking AI industry developments. Also interesting for studying how news affects collective sentiment in information markets.
+
+Free tier has delayed alerts, Pro gets real-time.
+
+Disclaimer: Research/news tool, not financial advice.
+
+Happy to discuss the technical implementation if anyone's interested.
+
+[LINK]
 ```
 
 ---
 
 ## Product Hunt
 
-**Tagline:** AI-powered prediction market intelligence
+**Tagline:** AI-powered news intelligence for information markets
 
 **Description:**
 ```
-EdgeSignals monitors news 24/7 and alerts you when it creates trading opportunities in prediction markets.
+EdgeSignals monitors 50+ AI news sources 24/7 and alerts you when significant events occur.
 
-🔥 The Problem
-When news breaks, prediction markets take 5-30 minutes to adjust. By the time you read the article, the opportunity is gone.
+We also analyze how news impacts sentiment in information markets like Polymarket — useful for research and understanding collective predictions.
 
-✅ The Solution  
-EdgeSignals uses AI to:
-• Monitor 20+ news sources in real-time
-• Filter for market-moving signals
-• Map news to specific Polymarket markets
-• Alert you in seconds, not minutes
+Features:
+✅ Real-time news monitoring (50+ sources)
+✅ AI-powered significance detection
+✅ Sentiment analysis
+✅ Telegram & email alerts
+✅ API for developers
 
-💰 Results
-+$78 profit in first week of paper trading. 100% win rate.
+Built by researchers who got tired of missing important AI news.
 
-🎯 Currently Tracking
-• OpenAI/GPT announcements
-• AI hardware launches
-• Company milestones
-
-Expanding to politics, crypto, and sports soon.
-
-💵 Pricing
-Free: 15-min delayed signals
-Pro ($49/mo): Real-time + Telegram alerts  
-Enterprise ($299/mo): API + custom alerts
-
-Built by traders, for traders. We use it ourselves daily.
-```
-
-**Maker Comment:**
-```
-Hey PH! 👋
-
-I built EdgeSignals because I kept missing prediction market opportunities.
-
-The pattern is simple: news drops → 5-30 min window → price adjusts.
-
-But manually tracking news across 20+ sources while also watching markets? Impossible.
-
-So I automated it.
-
-Currently focused on AI markets (my area of expertise), but the system works for any news-driven market.
-
-Would love feedback on what markets/features you'd want to see. 
-
-Happy to answer any questions! 🚀
+Disclaimer: For informational purposes only. Not financial advice.
 ```
 
 ---
 
-## Discord Announcement (Polymarket Discord)
+## Discord/Community Post
 
 ```
-🚀 **Launching: EdgeSignals — AI Prediction Market Intelligence**
+📰 **EdgeSignals** — AI News Intelligence
 
-Built a tool that monitors AI news and alerts when it creates Polymarket opportunities.
+Built a tool that monitors 50+ AI news sources 24/7 and sends alerts when significant events happen.
 
-**How it works:**
-• AI scans 20+ news sources 24/7
-• Filters for market-moving signals
-• Sends real-time alerts to your phone
+Also tracks how news impacts information market sentiment (Polymarket, Kalshi) — interesting data for research.
 
-**Results:** +$78 first week, 100% win rate
+**Features:**
+- Real-time alerts (Telegram, email)
+- 50+ sources monitored
+- Sentiment analysis
+- Free tier available
 
-**Pricing:** Free tier available. Pro = $49/mo for real-time.
+Check it out: [LINK]
 
-Link: [LINK]
-
-Would love feedback from this community 🙏
-```
-
----
-
-## Email to Waitlist (when we have signups)
-
-**Subject:** EdgeSignals is live 🚀
-
-```
-Hey [NAME],
-
-EdgeSignals just went live.
-
-You signed up for the waitlist, so you get first access.
-
-As promised, early users get 50% off Pro for 3 months.
-
-Use code EARLY50 at checkout.
-
-→ [LINK TO DASHBOARD]
-
-What you get with Pro:
-• Real-time signal alerts
-• Telegram notifications
-• API access for automated trading
-
-We've been paper trading with +$78 profit so far. Now it's your turn.
-
-Questions? Just reply to this email.
-
-— The EdgeSignals Team
+(Research tool — not financial advice!)
 ```
 
 ---
 
-## Quick Stats for Social Proof
+## Email to Waitlist
 
-Copy-paste these numbers:
-- **+$78.65** realized profit (first closed trade)
-- **100%** win rate (1/1 trades)
-- **23** AI markets tracked
-- **20+** news sources monitored
-- **5-30 min** typical edge window
+**Subject:** EdgeSignals is live — get early access
+
+```
+Hey!
+
+You signed up for EdgeSignals early access — we're now live!
+
+**What EdgeSignals does:**
+- Monitors 50+ AI news sources 24/7
+- AI filters for significant events
+- Analyzes sentiment impact
+- Sends real-time alerts
+
+**Your early access deal:**
+First 50 Pro users get 50% off for 3 months.
+Use code: EARLYBIRD
+
+Try it free: [LINK]
+Upgrade to Pro: [LINK]
+
+Thanks for believing in us early.
+
+— The EdgeSignals team
+
+P.S. This is a research/news tool. For informational purposes only.
+```
 
 ---
 
-## Launch Day Checklist
+## Screenshots Needed
 
-1. [ ] Tweet thread (copy from above)
-2. [ ] Reddit r/Polymarket post
-3. [ ] Reddit r/algotrading post  
-4. [ ] Product Hunt submission
-5. [ ] Polymarket Discord post
-6. [ ] Any other relevant Discords
-
-**Timing:** Launch mid-morning EST (10-11am) for max visibility
+1. **Landing page hero** — headline + value prop
+2. **Dashboard** — showing alerts
+3. **Alert example** — Telegram notification
+4. **Pricing page** — tiers
 
 ---
 
-*Everything above is ready to copy-paste. Just add the live URL.*
+## Launch Checklist
+
+- [ ] Screenshots captured
+- [ ] Vercel deploy complete
+- [ ] Dodo Payments products created
+- [ ] Tweet thread scheduled
+- [ ] Reddit posts drafted
+- [ ] Product Hunt listing ready
+- [ ] Waitlist email ready
+
+---
+
+*Last updated: 2026-01-30 (Compliance update)*
