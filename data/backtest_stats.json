@@ -1,0 +1,29 @@
+{
+  "generated_at": "2026-01-28T19:02:20.587414",
+  "performance": {
+    "total_trades": 2,
+    "win_rate": 100.0,
+    "profit_factor": 78.65,
+    "total_pnl": 78.65,
+    "realized_pnl": 78.65
+  },
+  "marketing_copy": {
+    "win_rate_display": "100%",
+    "pnl_display": "$78.65",
+    "trade_count": "1 trades"
+  },
+  "timing": {
+    "events_analyzed": 1,
+    "avg_price_move_1h": 38.9,
+    "avg_price_move_24h": 0.0,
+    "fastest_move_pct": 38.9,
+    "events": [
+      {
+        "headline": "OpenAI announces ads testing 'in coming weeks' for ChatGPT",
+        "source": "openai.com/blog",
+        "price_at_news": 44.0,
+        "move_1h": 38.9
+      }
+    ]
+  }
+}

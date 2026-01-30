@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "type": "BUY",
+    "market_slug": "gpt-ads-by-january-31-329-775",
+    "question": "GPT ads by January 31?",
+    "outcome": "Yes",
+    "entry_price": 4.45,
+    "amount": 500.0,
+    "shares": 11235.955056179775,
+    "reason": "OpenAI announced ads testing 'in coming weeks' - Jan 31 is 3 days away, market seems mispriced",
+    "timestamp": "2026-01-28T17:14:25.995412+00:00",
+    "status": "CLOSED",
+    "exit_price": 5.15,
+    "pnl": 78.65168539325845
+  },
+  {
+    "id": 2,
+    "type": "BUY",
+    "market_slug": "gpt-ads-by-march-31-269-364-978",
+    "question": "GPT ads by March 31?",
+    "outcome": "Yes",
+    "entry_price": 95.9,
+    "amount": 200.0,
+    "shares": 208.55057351407714,
+    "reason": "High confidence play - OpenAI confirmed ads coming, March 31 gives more runway",
+    "timestamp": "2026-01-28T17:14:37.258867+00:00",
+    "status": "OPEN",
+    "exit_price": null,
+    "pnl": null
+  }
+]

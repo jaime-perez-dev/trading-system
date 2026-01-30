@@ -1,0 +1,18 @@
+{
+  "events": [
+    {
+      "id": 1,
+      "type": "news",
+      "headline": "OpenAI announces ads testing 'in coming weeks' for ChatGPT",
+      "source": "openai.com/blog",
+      "market_slug": "gpt-ads-by-january-31-329-775",
+      "news_time": "2026-01-28T13:34:39.488506",
+      "market_price_at_news": "44",
+      "market_price_1h_later": "5.1",
+      "market_price_24h_later": null,
+      "final_resolution": null,
+      "notes": "News broke Jan 16, market moved from 44% to 93% over next day"
+    }
+  ],
+  "stats": {}
+}
