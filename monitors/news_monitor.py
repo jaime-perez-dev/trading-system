@@ -15,12 +15,25 @@ from pathlib import Path
 
 # RSS Feeds to monitor
 RSS_FEEDS = {
+    # Tech News
     "the_verge_ai": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
     "the_verge_tech": "https://www.theverge.com/rss/tech/index.xml",
     "techcrunch_ai": "https://techcrunch.com/category/artificial-intelligence/feed/",
     "ars_technica": "https://feeds.arstechnica.com/arstechnica/technology-lab",
     "wired_ai": "https://www.wired.com/feed/tag/ai/latest/rss",
     "reuters_tech": "https://www.reutersagency.com/feed/?best-topics=tech",
+    "mit_tech": "https://feeds.feedburner.com/TechnologyReview",
+
+    # Official AI Company Blogs (HIGH VALUE - direct from source)
+    "openai_blog": "https://openai.com/index.xml",
+    "anthropic_blog": "https://www.anthropic.com/rss.xml",
+    "google_ai": "https://developers.googleblog.com/feeds/posts/default?alt=rss&category=artificial-intelligence",
+    "microsoft_ai": "https://blogs.microsoft.com/ai/feed/",
+    "meta_ai": "https://ai.meta.com/blog/rss.xml",
+    "deepmind": "https://deepmind.google/blog/rss.xml",
+    "xai_blog": "https://x.ai/blog/rss.xml",
+    "mistral_ai": "https://mistral.ai/news/rss.xml",
+    "perplexity_blog": "https://www.perplexity.ai/blog/rss.xml",
 }
 
 # Keywords that signal tradeable news
@@ -31,10 +44,20 @@ KEYWORDS = {
         "funding", "raised", "valuation", "billion",
         "launch", "released", "announces", "unveiled",
         "shutdown", "banned", "regulation", "lawsuit", "sued",
+        "CEO", "founder", "leaves", "steps down", "resigns",
+        "revenue", "earnings", "quarterly", "Q1", "Q2", "Q3", "Q4",
+        "stock", "shares", "market cap", "public",
+        "API", "pricing", "price increase", "free",
+        "model", "benchmark", "SOTA", "outperforms",
+        "lawsuit", "antitrust", "EU", "US", "China",
+        "AGI", "superintelligence", "safety", "alignment",
     ],
     "entities": [
         "OpenAI", "ChatGPT", "Anthropic", "Claude", "Google", "Gemini",
         "Microsoft", "Meta", "xAI", "Grok", "Perplexity", "Mistral",
+        "DeepMind", "Stability AI", "Midjourney", "Runway",
+        "Apple", "Amazon", "NVIDIA", "Tesla", "Palantir",
+        "Biden", "Trump", "EU Commission", "FTC", "antitrust",
     ]
 }
 

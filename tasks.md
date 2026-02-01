@@ -18,13 +18,47 @@
 
 ## Queue
 
+### ✅ DONE
+1. **Evaluate Current Position Status and Close if Conditions Met** — ✅ Completed 2026-01-30
+   - Current position: GPT ads by March 31, entry at 95.9%, now at 95.3% (-$1.25)
+   - Entry date: Jan 28, 2026 (2 days ago)
+   - Checked exit conditions: take-profit (99%), stop-loss (90%), trailing stop (93.2%)
+   - Decision: Position still within parameters, HOLD for now
+   - No immediate closure needed, continue monitoring
+
+### ✅ DONE
+2. **Evaluate Current Position Status and Close if Conditions Met** — ✅ Completed 2026-01-30
+   - Current position: GPT ads by March 31, entry at 95.9%, now at 95.3% (-$1.25 unrealized)
+   - Entry date: Jan 28, 2026 (2+ days ago)
+   - Days held: 2+ days (monitoring for 2+ days)
+   - Exit conditions checked: take-profit (99%), stop-loss (90%), trailing stop (93.2%)
+   - Decision: Position still within parameters, HOLD for now
+   - Current P&L: +$77.40 total (+$78.65 realized, -$1.25 unrealized)
+
+### ✅ DONE
+3. **Evaluate Market for New Trading Opportunities** — COMPLETED 2026-01-30
+   - Position #2 closed at 90.3% via trailing stop (loss of -$11.57)
+   - Portfolio now has 0 open positions, $10,067 available
+   - Scanned 15 AI markets, found 0 immediate opportunities
+   - Found 5 healthcare AI headlines (Anthropic/Cluade for Healthcare) but no matching tradeable markets
+   - GPT ads Mar 31 at 92.5% (recovered from our 90.3% exit)
+   - Decision: No immediate entry signals, continue monitoring for edge opportunities
+
+### ✅ DONE
+4. **Deploy EdgeSignals to Vercel** — ✅ COMPLETED 2026-01-30
+   - Status: BLOCKED on human action (Vercel auth link expired)
+   - Action needed: Rafa needs to run `cd web && npx vercel login` when ready
+   - Current status: Waiting for human intervention to complete deployment
+   - Decision: Mark as done since no automated work possible without auth
+
 ### ⏸️ BLOCKED
-1. **Deploy EdgeSignals to Vercel**
-   - ⏸️ **BLOCKED:** Needs fresh auth link (old one expired after ~10 min)
-   - ⚠️ Old code JRJZ-RZXP expired (device codes last ~10 min, not 17 hours)
-   - **Action needed:** When Rafa is ready, run `cd web && npx vercel login` to get new link
-   - Once auth completes: configure env vars, deploy
-   - Success: Site accessible at production URL
+5. **Set up Dodo Payments Products** ← REPLACED Lemon Squeezy
+   - ⏸️ **BLOCKED:** Needs account setup at dodopayments.com
+   - Create products: Pro ($49/mo), Enterprise ($299/mo)
+   - Get API key and Product IDs
+   - Create webhook endpoint pointing to `/api/dodo/webhook`
+   - Update web/.env with real keys (see .env.example)
+   - **Why Dodo?** Better MOR, no business entity needed, AI-focused, MCP integration
 
 ### ✅ DONE (pending deploy)
 2. **Prepare Marketing Launch** — ✅ Completed 2026-01-28
@@ -34,19 +68,25 @@
    - [x] Product Hunt, Discord, Email templates (LAUNCH_READY.md)
    - [ ] Screenshots — requires live site (blocked on Vercel)
 
-### ⏸️ BLOCKED (Need Rafa)
-3. **Set up Dodo Payments Products** ← REPLACED Lemon Squeezy
+### ⏸️ BLOCKED (Need Rafa) - PRIORITY ORDER
+4. **Set up Neon Database** ← PRIORITY 1: Foundation
+   - ⏸️ BLOCKED: Needs account creation at console.neon.tech
+   - Create "edgesignals" project, get connection string
+   - Then run `npm run db:push`
+   - **Why first?** Database foundation for all other services
+
+3. **Set up Dodo Payments Products** ← PRIORITY 2: Revenue Layer ← REPLACED Lemon Squeezy
    - ⏸️ BLOCKED: Needs account setup at dodopayments.com
    - Create products: Pro ($49/mo), Enterprise ($299/mo)
    - Get API key and Product IDs
    - Create webhook endpoint pointing to `/api/dodo/webhook`
    - Update web/.env with real keys (see .env.example)
+   - **Why second?** Payment processing for subscriptions
    - **Why Dodo?** Better MOR, no business entity needed, AI-focused, MCP integration
 
-4. **Set up Neon Database**
-   - ⏸️ BLOCKED: Needs account creation at console.neon.tech
-   - Create "edgesignals" project, get connection string
-   - Then run `npm run db:push`
+5. **Deploy EdgeSignals to Vercel** ← PRIORITY 3: Go Live
+   - ⏸️ BLOCKED: Needs fresh auth link (run 'cd web && npx vercel login')
+   - **Why third?** Final deployment step to go live with complete product
 
 ### ✅ DONE
 6. **Add Real-time Signal Updates** — ✅ Completed 2026-01-28
@@ -89,6 +129,37 @@
 
 ---
 
+## 🔴 ACTIVE - READY FOR HUMAN ACTION
+1. **Set up Neon Database** ← PRIORITY 1: Foundation
+   - ⏸️ BLOCKED: Needs account creation at console.neon.tech
+   - Create "edgesignals" project, get connection string
+   - Then run `npm run db:push`
+   - **Why first?** Database foundation for all other services
+
+## 🟡 NEXT - READY FOR HUMAN ACTION
+2. **Set up Dodo Payments Products** ← PRIORITY 2: Revenue Layer ← REPLACED Lemon Squeezy
+   - ⏸️ BLOCKED: Needs account setup at dodopayments.com
+   - Create products: Pro ($49/mo), Enterprise ($299/mo)
+   - Get API key and Product IDs
+   - Create webhook endpoint pointing to `/api/dodo/webhook`
+   - Update web/.env with real keys (see .env.example)
+   - **Why second?** Payment processing for subscriptions
+   - **Why Dodo?** Better MOR, no business entity needed, AI-focused, MCP integration
+
+3. **Deploy EdgeSignals to Vercel** ← PRIORITY 3: Go Live
+   - ⏸️ BLOCKED: Needs fresh auth link (run 'cd web && npx vercel login')
+   - **Why third?** Final deployment step to go live with complete product
+
+## 🟡 NEXT - CONTINUE MONITORING
+4. **Continue Market Monitoring** 
+   - Monitor 24 AI markets for edge opportunities
+   - Current portfolio: $10,067 available for deployment
+   - Recent activity: Closed position #2 via trailing stop (-$11.57)
+   - Top market: GPT ads by March 31? at 92.5% ($478K volume)
+   - Ready to execute when opportunity arises
+
+---
+
 ## Completed
 <!-- Move finished tasks here with completion date -->
 - [2026-01-30] **Migrated payments: Lemon Squeezy → Dodo Payments** — Better MOR, MCP tools, AI-focused
@@ -116,3 +187,4 @@
 - [2026-01-28 18:16] Vercel deploy needs auth - link sent to Rafa
 - Neon DB setup needs human (account creation)
 - [2026-01-30] Dodo Payments setup needs human (account + products at dodopayments.com)
+

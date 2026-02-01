@@ -125,12 +125,12 @@ Stack: Next.js 16 + TypeScript + Tailwind CSS + shadcn/ui
 ## Metrics
 
 ### Paper Trading (Current)
-- Total positions: 1 open
+- Total positions: 0 open
 - Closed trades: 1
 - **Realized P&L: +$78.65** ✅
 - Unrealized P&L: -$0.21
 - **Total P&L: +$78.44**
-- Win rate: 100% (1/1)
+- Win rate: 50% (1/2)
 
 ### Open Positions
 | # | Market | Side | Entry | Current | Amount | P&L | Status |
