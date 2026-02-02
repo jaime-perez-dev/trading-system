@@ -84,6 +84,12 @@ python monitors/tavily_search.py -q "OpenAI GPT"
 
 # Run RSS news monitor
 python -m monitors.news_monitor
+
+# Market watchlist - track markets before trading
+python market_watchlist.py add <slug> --target 0.30 --note "Waiting for news"
+python market_watchlist.py list
+python market_watchlist.py check --notify
+python market_watchlist.py remove <slug>
 ```
 
 ## Environment
@@ -111,7 +117,7 @@ cd web && bun test
 ```
 
 Test coverage:
-- **433 Python tests** covering all core modules
+- **455 Python tests** covering all core modules
 - `tests/test_paper_trader.py` — PaperTrader class, share calculations, P&L math
 - `tests/test_scanner.py` — Filtering, scoring, risk limits, Kelly criterion
 - `tests/test_*.py` — All modules have comprehensive test coverage
