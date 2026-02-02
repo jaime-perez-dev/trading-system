@@ -2,8 +2,14 @@
 """
 Trading System Dashboard
 One-command view of portfolio, markets, and opportunities
+
+Usage:
+  python dashboard.py           # Full dashboard with pretty output
+  python dashboard.py --json    # JSON output for automation
+  python dashboard.py --quiet   # Compact summary (for cron/logs)
 """
 
+import argparse
 import json
 from datetime import datetime
 from pathlib import Path
@@ -68,7 +74,100 @@ def print_header(title: str):
     print(f"{'=' * 60}")
 
 
+def get_dashboard_data() -> dict:
+    """Get all dashboard data as a dictionary (for JSON output)"""
+    client = PolymarketClient()
+    trader = PaperTrader()
+    
+    open_trades = [t for t in trader.trades if t["status"] == "OPEN"]
+    closed_trades = [t for t in trader.trades if t["status"] in ["CLOSED", "RESOLVED"]]
+    
+    position_slugs = list(set(t["market_slug"] for t in open_trades))
+    live_prices = get_live_prices(client, position_slugs)
+    positions_with_pnl = calculate_unrealized_pnl(open_trades, live_prices)
+    
+    total_unrealized = sum(p["unrealized_pnl"] for p in positions_with_pnl)
+    total_realized = sum(t.get("pnl", 0) for t in closed_trades)
+    total_invested = sum(t["amount"] for t in open_trades)
+    
+    markets = client.get_tracked_ai_markets()
+    markets.sort(key=lambda x: float(x.get("volume", 0)), reverse=True)
+    
+    # Last scan info
+    last_scan_file = DATA_DIR / "last_scan.json"
+    last_scan = {}
+    if last_scan_file.exists():
+        with open(last_scan_file) as f:
+            last_scan = json.load(f)
+    
+    return {
+        "timestamp": datetime.now().isoformat(),
+        "portfolio": {
+            "starting_balance": STARTING_BALANCE,
+            "realized_pnl": round(total_realized, 2),
+            "unrealized_pnl": round(total_unrealized, 2),
+            "total_pnl": round(total_realized + total_unrealized, 2),
+            "total_invested": round(total_invested, 2),
+            "available": round(STARTING_BALANCE + total_realized - total_invested, 2),
+        },
+        "positions": {
+            "open_count": len(open_trades),
+            "closed_count": len(closed_trades),
+            "open": [
+                {
+                    "id": p["id"],
+                    "market": p["question"][:50],
+                    "entry_price": p["entry_price"],
+                    "current_price": p["current_price"],
+                    "amount": p["amount"],
+                    "unrealized_pnl": round(p["unrealized_pnl"], 2),
+                }
+                for p in positions_with_pnl
+            ],
+        },
+        "markets": {
+            "ai_markets_count": len(markets),
+            "top_by_volume": [
+                {
+                    "question": m["question"][:60],
+                    "yes_price": client.parse_prices(m).get("Yes", 0),
+                    "volume": float(m.get("volume", 0)),
+                }
+                for m in markets[:10]
+            ],
+        },
+        "system": {
+            "last_scan": last_scan.get("timestamp"),
+            "new_articles": last_scan.get("new_articles", 0),
+            "opportunities": last_scan.get("opportunities", 0),
+        },
+    }
+
+
+def print_quiet(data: dict):
+    """Print compact one-liner for cron/logs"""
+    p = data["portfolio"]
+    pnl_emoji = "🟢" if p["total_pnl"] >= 0 else "🔴"
+    print(f"[{data['timestamp'][:19]}] {pnl_emoji} P&L: ${p['total_pnl']:+.2f} | Open: {data['positions']['open_count']} | Markets: {data['markets']['ai_markets_count']}")
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Trading System Dashboard")
+    parser.add_argument("--json", action="store_true", help="Output as JSON")
+    parser.add_argument("--quiet", "-q", action="store_true", help="Compact one-liner (for cron/logs)")
+    args = parser.parse_args()
+    
+    data = get_dashboard_data()
+    
+    if args.json:
+        print(json.dumps(data, indent=2))
+        return
+    
+    if args.quiet:
+        print_quiet(data)
+        return
+    
+    # Full pretty output
     print(f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║          AI TRADING SYSTEM DASHBOARD                        ║

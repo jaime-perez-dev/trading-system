@@ -248,3 +248,100 @@ class TestDashboardIntegration:
         # If resolves YES: win 400 * ($1 - $0.25) = $300 profit
         # Current unrealized at 75%: (75-25)/100 * 400 = $200
         assert result[0]["unrealized_pnl"] == 200.0
+
+
+class TestDashboardCLI:
+    """Tests for dashboard CLI modes"""
+    
+    def test_get_dashboard_data_returns_dict(self, monkeypatch, tmp_path):
+        """get_dashboard_data returns a dictionary with expected keys"""
+        import dashboard
+        
+        # Mock paper trades file
+        trades_file = tmp_path / "paper_trades.json"
+        trades_file.write_text('[]')
+        monkeypatch.setattr(dashboard, "DATA_DIR", tmp_path)
+        
+        # Mock PolymarketClient
+        class MockClient:
+            def get_tracked_ai_markets(self):
+                return []
+        monkeypatch.setattr(dashboard, "PolymarketClient", MockClient)
+        
+        # Mock PaperTrader
+        class MockTrader:
+            trades = []
+        monkeypatch.setattr(dashboard, "PaperTrader", MockTrader)
+        
+        result = dashboard.get_dashboard_data()
+        
+        assert isinstance(result, dict)
+        assert "timestamp" in result
+        assert "portfolio" in result
+        assert "positions" in result
+        assert "markets" in result
+        assert "system" in result
+    
+    def test_get_dashboard_data_portfolio_fields(self, monkeypatch, tmp_path):
+        """Portfolio has all expected fields"""
+        import dashboard
+        
+        trades_file = tmp_path / "paper_trades.json"
+        trades_file.write_text('[]')
+        monkeypatch.setattr(dashboard, "DATA_DIR", tmp_path)
+        
+        class MockClient:
+            def get_tracked_ai_markets(self):
+                return []
+        monkeypatch.setattr(dashboard, "PolymarketClient", MockClient)
+        
+        class MockTrader:
+            trades = []
+        monkeypatch.setattr(dashboard, "PaperTrader", MockTrader)
+        
+        result = dashboard.get_dashboard_data()
+        
+        portfolio = result["portfolio"]
+        assert "starting_balance" in portfolio
+        assert "realized_pnl" in portfolio
+        assert "unrealized_pnl" in portfolio
+        assert "total_pnl" in portfolio
+        assert "total_invested" in portfolio
+        assert "available" in portfolio
+    
+    def test_print_quiet_format(self, monkeypatch, capsys):
+        """print_quiet outputs expected format"""
+        import dashboard
+        
+        data = {
+            "timestamp": "2026-02-02T12:00:00",
+            "portfolio": {"total_pnl": 100.50},
+            "positions": {"open_count": 3},
+            "markets": {"ai_markets_count": 24},
+        }
+        
+        dashboard.print_quiet(data)
+        
+        captured = capsys.readouterr()
+        assert "2026-02-02T12:00:00" in captured.out
+        assert "P&L: $+100.50" in captured.out
+        assert "Open: 3" in captured.out
+        assert "Markets: 24" in captured.out
+        assert "🟢" in captured.out  # Positive P&L
+    
+    def test_print_quiet_negative_pnl(self, monkeypatch, capsys):
+        """print_quiet shows red emoji for negative P&L"""
+        import dashboard
+        
+        data = {
+            "timestamp": "2026-02-02T12:00:00",
+            "portfolio": {"total_pnl": -50.00},
+            "positions": {"open_count": 1},
+            "markets": {"ai_markets_count": 10},
+        }
+        
+        dashboard.print_quiet(data)
+        
+        captured = capsys.readouterr()
+        assert "🔴" in captured.out  # Negative P&L
+        assert "P&L: $-50.00" in captured.out
