@@ -90,6 +90,48 @@ Service health status for monitoring and load balancers.
 
 ---
 
+## Platform Stats
+
+### GET /api/stats
+Aggregate platform statistics for marketing, transparency, and landing page display.
+
+**Public:** Yes (rate limited)
+
+**Cache:** 60 seconds
+
+**Success Response (200):**
+```json
+{
+  "trading": {
+    "totalSignals": 45,
+    "openPositions": 3,
+    "closedTrades": 42,
+    "winRate": 65,
+    "totalPnL": 1250.75,
+    "avgPnL": 29.78
+  },
+  "community": {
+    "waitlistCount": 150,
+    "userCount": 25
+  },
+  "system": {
+    "status": "operational",
+    "uptimeHours": 720,
+    "uptimeDays": 30,
+    "version": "1.0.0"
+  },
+  "generatedAt": "2026-02-02T15:30:00.000Z"
+}
+```
+
+**Notes:**
+- `winRate` is null if no closed trades exist
+- `avgPnL` is null if no closed trades exist
+- P&L values are in USD
+- Data is cached for 60 seconds
+
+---
+
 ## RSS Feed
 
 ### GET /api/feed
