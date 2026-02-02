@@ -74,10 +74,10 @@ def calculate_unrealized_pnl(trade: dict, current_price: Optional[float] = None)
     
     # For Yes positions: profit if price goes up
     if trade.get("outcome", "Yes") == "Yes":
-        return (current - entry_price) * shares * 100
+        return (current - entry_price) * shares
     else:
         # For No positions: profit if price goes down
-        return (entry_price - current) * shares * 100
+        return (entry_price - current) * shares
 
 
 def analyze_trades(trades: list, current_prices: Optional[dict] = None) -> TradeStats:
