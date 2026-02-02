@@ -13,7 +13,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent))
 from polymarket.client import PolymarketClient
 from alerts.exit_tracker import ExitTracker
-from risk_manager import RiskManager
+from risk_manager import RiskManager, Position
 
 DATA_DIR = Path(__file__).parent / "data"
 TRADES_FILE = DATA_DIR / "paper_trades.json"
@@ -27,6 +27,24 @@ class PaperTrader:
         self.exit_tracker = ExitTracker(notify=False)  # Don't double notify on init
         self.risk_manager = RiskManager()
         self.trades = self._load_trades()
+        self._sync_positions_to_risk_manager()
+    
+    def _sync_positions_to_risk_manager(self):
+        """Sync open positions from trades file to RiskManager for exposure tracking."""
+        open_trades = [t for t in self.trades if t["status"] == "OPEN"]
+        for t in open_trades:
+            # Skip test trades
+            if t.get("market_slug", "").startswith("test"):
+                continue
+            
+            position = Position(
+                market_slug=t["market_slug"],
+                market_title=t.get("question", t["market_slug"]),
+                amount=t["amount"],
+                entry_price=t["entry_price"],
+                side=t["outcome"].lower()
+            )
+            self.risk_manager.add_position(position)
     
     def _load_trades(self) -> List[Dict]:
         """Load trade history"""
@@ -71,10 +89,42 @@ class PaperTrader:
                 return {"error": f"Outcome '{outcome}' not found. Available: {list(prices.keys())}"}
             entry_price = prices[outcome]
         
-        # Risk assessment - warn on asymmetric risk
-        risk_warning = self.risk_manager.check_asymmetric_risk(entry_price)
-        if risk_warning:
-            print(risk_warning)
+        # Get current portfolio state for risk checks
+        open_trades = [t for t in self.trades if t["status"] == "OPEN"]
+        open_positions_count = len(open_trades)
+        
+        # Calculate daily P&L (closed trades today)
+        from datetime import date
+        today = date.today().isoformat()
+        closed_today = [t for t in self.trades 
+                       if t["status"] in ["CLOSED", "RESOLVED"] 
+                       and t.get("closed_at", "")[:10] == today]
+        daily_pnl = sum(t.get("pnl", 0) for t in closed_today)
+        
+        # Calculate current bankroll
+        realized_pnl = sum(t.get("pnl", 0) for t in self.trades if t["status"] in ["CLOSED", "RESOLVED"])
+        total_invested = sum(t["amount"] for t in open_trades)
+        bankroll = STARTING_BALANCE + realized_pnl - total_invested
+        
+        # Full risk assessment
+        market_title = market.get("question", market_slug) if market else market_slug
+        allowed, messages = self.risk_manager.full_risk_check(
+            market_slug=market_slug,
+            market_title=market_title,
+            amount=amount,
+            entry_price=entry_price,
+            open_positions_count=open_positions_count,
+            daily_pnl=daily_pnl,
+            bankroll=bankroll
+        )
+        
+        # Print all risk messages (warnings and errors)
+        for msg in messages:
+            print(msg)
+        
+        # Block trade if risk checks fail
+        if not allowed:
+            return {"error": "Trade blocked by risk checks", "risk_messages": messages}
         
         # Calculate shares
         shares = (amount / entry_price) * 100  # Each share pays $1 if correct
@@ -98,6 +148,16 @@ class PaperTrader:
         
         self.trades.append(trade)
         self._save_trades()
+        
+        # Track position in RiskManager for exposure calculations
+        position = Position(
+            market_slug=market_slug,
+            market_title=market_title,
+            amount=amount,
+            entry_price=entry_price,
+            side=outcome.lower()
+        )
+        self.risk_manager.add_position(position)
         
         # Set exit targets if provided
         if any([take_profit, stop_loss, trailing_stop]):
@@ -156,6 +216,9 @@ class PaperTrader:
         trade["closed_at"] = datetime.now(timezone.utc).isoformat()
         
         self._save_trades()
+        
+        # Remove position from RiskManager
+        self.risk_manager.remove_position(trade["market_slug"])
         
         emoji = "🟢" if pnl >= 0 else "🔴"
         print(f"""
