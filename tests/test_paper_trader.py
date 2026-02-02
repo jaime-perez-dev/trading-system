@@ -368,5 +368,49 @@ class TestPaperTraderCleanup:
                     assert result["remaining"] == 1
 
 
+class TestAsymmetricRiskWarning:
+    """Test asymmetric risk warning feature"""
+    
+    @pytest.fixture
+    def trader(self, tmp_path):
+        """Create a PaperTrader with temp data directory"""
+        with patch('paper_trader.DATA_DIR', tmp_path):
+            with patch('paper_trader.TRADES_FILE', tmp_path / "paper_trades.json"):
+                with patch('paper_trader.PolymarketClient') as mock_client, \
+                     patch('paper_trader.ExitTracker'):
+                    trader = PaperTrader()
+                    mock_client.return_value.get_market_by_slug.return_value = {"question": "Test"}
+                    yield trader
+    
+    def test_high_price_triggers_warning(self, trader, capsys):
+        """Entry price > 85% should print asymmetric risk warning"""
+        trader.buy("test-market", "Yes", 100.0, entry_price=90.0, reason="High price test")
+        
+        captured = capsys.readouterr()
+        assert "ASYMMETRIC RISK WARNING" in captured.out
+        assert "Entry at 90.0%" in captured.out
+    
+    def test_normal_price_no_warning(self, trader, capsys):
+        """Entry price <= 85% should NOT print asymmetric risk warning"""
+        trader.buy("test-market", "Yes", 100.0, entry_price=50.0, reason="Normal price test")
+        
+        captured = capsys.readouterr()
+        assert "ASYMMETRIC RISK WARNING" not in captured.out
+    
+    def test_edge_case_85_percent(self, trader, capsys):
+        """Entry price at exactly 85% should NOT trigger warning"""
+        trader.buy("test-market", "Yes", 100.0, entry_price=85.0, reason="Edge case test")
+        
+        captured = capsys.readouterr()
+        assert "ASYMMETRIC RISK WARNING" not in captured.out
+    
+    def test_edge_case_86_percent(self, trader, capsys):
+        """Entry price at 86% should trigger warning"""
+        trader.buy("test-market", "Yes", 100.0, entry_price=86.0, reason="Edge case test")
+        
+        captured = capsys.readouterr()
+        assert "ASYMMETRIC RISK WARNING" in captured.out
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
