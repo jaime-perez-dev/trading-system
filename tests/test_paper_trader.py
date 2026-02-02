@@ -412,5 +412,113 @@ class TestAsymmetricRiskWarning:
         assert "ASYMMETRIC RISK WARNING" in captured.out
 
 
+class TestJsonOutput:
+    """Test JSON output functionality"""
+    
+    @pytest.fixture
+    def trader(self, tmp_path):
+        """Create a PaperTrader with temp data directory"""
+        with patch('paper_trader.DATA_DIR', tmp_path):
+            with patch('paper_trader.TRADES_FILE', tmp_path / "paper_trades.json"):
+                with patch('paper_trader.PolymarketClient') as mock_client, \
+                     patch('paper_trader.ExitTracker') as mock_exit_tracker:
+                    
+                    mock_client.return_value = MagicMock()
+                    mock_exit_tracker.return_value = MagicMock()
+                    
+                    trader = PaperTrader()
+                    trader.trades = []
+                    yield trader
+    
+    @pytest.fixture
+    def mock_market(self):
+        """Sample market data"""
+        return {
+            "question": "Test JSON Market",
+            "slug": "test-json-market",
+            "outcomes": [{"name": "Yes", "price": 0.50}]
+        }
+    
+    def test_status_json_returns_dict(self, trader):
+        """status() with json_output=True returns dict without printing"""
+        result = trader.status(json_output=True)
+        
+        assert isinstance(result, dict)
+        assert "starting_balance" in result
+        assert "current_balance" in result
+        assert "realized_pnl" in result
+        assert "win_rate" in result
+        assert "open_trades" in result
+    
+    def test_status_json_no_print(self, trader, capsys):
+        """status() with json_output=True should not print formatted output"""
+        trader.status(json_output=True)
+        
+        captured = capsys.readouterr()
+        assert "PAPER TRADING STATUS" not in captured.out
+        assert "Starting Balance" not in captured.out
+    
+    def test_status_normal_prints(self, trader, capsys):
+        """status() without json_output should print formatted output"""
+        trader.status(json_output=False)
+        
+        captured = capsys.readouterr()
+        assert "PAPER TRADING STATUS" in captured.out
+    
+    def test_list_trades_json_returns_list(self, trader, mock_market):
+        """list_trades() with json_output=True returns list without printing"""
+        # Mock the Polymarket client
+        trader.client.get_market_by_slug.return_value = mock_market
+        trader.client.parse_prices.return_value = {"Yes": 0.50}
+        
+        # Add some test trades
+        trader.buy("test-json-market", "Yes", 100.0, entry_price=50.0)
+        
+        result = trader.list_trades(json_output=True)
+        
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0]["market_slug"] == "test-json-market"
+    
+    def test_list_trades_json_no_print(self, trader, mock_market, capsys):
+        """list_trades() with json_output=True should not print formatted output"""
+        trader.client.get_market_by_slug.return_value = mock_market
+        trader.client.parse_prices.return_value = {"Yes": 0.50}
+        
+        trader.buy("test-json-market", "Yes", 100.0, entry_price=50.0)
+        trader.list_trades(json_output=True)
+        
+        captured = capsys.readouterr()
+        # Should not contain emoji indicators from list output
+        assert "🔵" not in captured.out
+    
+    def test_cleanup_json_returns_dict(self, trader, mock_market):
+        """cleanup_test_trades() with json_output=True returns dict"""
+        trader.client.get_market_by_slug.return_value = mock_market
+        trader.client.parse_prices.return_value = {"Yes": 0.50}
+        
+        # Add test trades
+        trader.buy("test-cleanup-market", "Yes", 100.0, entry_price=50.0)
+        
+        result = trader.cleanup_test_trades(dry_run=True, json_output=True)
+        
+        assert isinstance(result, dict)
+        assert "removed" in result
+        assert "remaining" in result
+        assert "would_remove" in result
+        assert "dry_run" in result
+    
+    def test_cleanup_json_no_print(self, trader, mock_market, capsys):
+        """cleanup_test_trades() with json_output=True should not print"""
+        trader.client.get_market_by_slug.return_value = mock_market
+        trader.client.parse_prices.return_value = {"Yes": 0.50}
+        
+        trader.buy("test-cleanup-market", "Yes", 100.0, entry_price=50.0)
+        trader.cleanup_test_trades(dry_run=True, json_output=True)
+        
+        captured = capsys.readouterr()
+        assert "DRY RUN" not in captured.out
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

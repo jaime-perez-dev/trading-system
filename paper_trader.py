@@ -210,7 +210,7 @@ class PaperTrader:
         
         return trade
     
-    def status(self, exclude_test: bool = False) -> Dict:
+    def status(self, exclude_test: bool = False, json_output: bool = False) -> Dict:
         """Get portfolio status"""
         trades = self.trades
         if exclude_test:
@@ -237,7 +237,11 @@ class PaperTrader:
             "wins": wins,
             "losses": losses,
             "win_rate": win_rate,
+            "open_trades": open_trades,
         }
+        
+        if json_output:
+            return status
         
         print(f"""
 📊 PAPER TRADING STATUS
@@ -263,13 +267,16 @@ class PaperTrader:
         
         return status
     
-    def list_trades(self, status_filter: Optional[str] = None, exclude_test: bool = False) -> List[Dict]:
+    def list_trades(self, status_filter: Optional[str] = None, exclude_test: bool = False, json_output: bool = False) -> List[Dict]:
         """List all trades"""
         trades = self.trades
         if status_filter:
             trades = [t for t in trades if t["status"] == status_filter.upper()]
         if exclude_test:
             trades = [t for t in trades if not t.get("market_slug", "").startswith("test")]
+        
+        if json_output:
+            return trades
         
         for t in trades:
             emoji = {"OPEN": "🔵", "CLOSED": "⚪", "RESOLVED": "🟢" if t.get("won") else "🔴"}.get(t["status"], "⚪")
@@ -278,29 +285,35 @@ class PaperTrader:
         
         return trades
     
-    def cleanup_test_trades(self, dry_run: bool = True) -> Dict:
+    def cleanup_test_trades(self, dry_run: bool = True, json_output: bool = False) -> Dict:
         """Remove all test trades (market_slug starting with 'test')"""
         test_trades = [t for t in self.trades if t.get("market_slug", "").startswith("test")]
         real_trades = [t for t in self.trades if not t.get("market_slug", "").startswith("test")]
         
         count = len(test_trades)
         
+        result = {"removed": 0, "remaining": len(real_trades), "would_remove": count, "dry_run": dry_run}
+        
         if count == 0:
-            print("✅ No test trades found.")
-            return {"removed": 0, "remaining": len(real_trades)}
+            if not json_output:
+                print("✅ No test trades found.")
+            return result
         
         if dry_run:
-            print(f"🔍 DRY RUN: Would remove {count} test trades, keeping {len(real_trades)} real trades.")
-            print("   Run with --confirm to actually remove them.")
+            if not json_output:
+                print(f"🔍 DRY RUN: Would remove {count} test trades, keeping {len(real_trades)} real trades.")
+                print("   Run with --confirm to actually remove them.")
         else:
             self.trades = real_trades
             # Re-number remaining trades
             for i, t in enumerate(self.trades, 1):
                 t["id"] = i
             self._save_trades()
-            print(f"🗑️  Removed {count} test trades. {len(real_trades)} real trades remaining.")
+            result["removed"] = count
+            if not json_output:
+                print(f"🗑️  Removed {count} test trades. {len(real_trades)} real trades remaining.")
         
-        return {"removed": count if not dry_run else 0, "remaining": len(real_trades)}
+        return result
 
 
 def main():
@@ -321,6 +334,9 @@ def main():
     parser.add_argument("--tp", type=float, help="Take profit price")
     parser.add_argument("--sl", type=float, help="Stop loss price")
     parser.add_argument("--ts", type=float, help="Trailing stop distance (pp)")
+    
+    # Output format
+    parser.add_argument("--json", action="store_true", help="Output as JSON")
     
     args = parser.parse_args()
     trader = PaperTrader()
@@ -347,13 +363,22 @@ def main():
         trader.resolve(args.id, args.won)
     
     elif args.command == "status":
-        trader.status(exclude_test=args.real)
+        result = trader.status(exclude_test=args.real, json_output=args.json)
+        if args.json:
+            import json
+            print(json.dumps(result, indent=2))
     
     elif args.command == "list":
-        trader.list_trades(exclude_test=args.real)
+        result = trader.list_trades(exclude_test=args.real, json_output=args.json)
+        if args.json:
+            import json
+            print(json.dumps(result, indent=2))
     
     elif args.command == "cleanup":
-        trader.cleanup_test_trades(dry_run=not args.confirm)
+        result = trader.cleanup_test_trades(dry_run=not args.confirm, json_output=args.json)
+        if args.json:
+            import json
+            print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

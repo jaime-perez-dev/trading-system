@@ -70,6 +70,17 @@ python multi_scanner.py
 # View portfolio
 python dashboard.py
 
+# Paper trading
+python paper_trader.py status                 # Portfolio overview
+python paper_trader.py status --real          # Exclude test trades
+python paper_trader.py status --json          # JSON output
+python paper_trader.py list                   # List all trades
+python paper_trader.py list --json            # JSON output
+python paper_trader.py buy --slug <slug> --outcome Yes --amount 100
+python paper_trader.py close --id <trade_id>
+python paper_trader.py resolve --id <trade_id> --won
+python paper_trader.py cleanup --confirm      # Remove test trades
+
 # Generate performance report
 python reports/performance_report.py --type summary
 
