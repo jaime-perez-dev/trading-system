@@ -133,10 +133,22 @@ class PolymarketClient:
             resp.raise_for_status()
             all_markets = resp.json()
             
-            # Filter by event slug
-            return [m for m in all_markets 
-                    if any(e.get("slug") == event_slug 
-                           for e in m.get("events", []))]
+            # Filter by event slug - handle events as JSON string if needed
+            filtered_markets = []
+            for m in all_markets:
+                events = m.get("events", [])
+                # Handle events as JSON string
+                if isinstance(events, str):
+                    try:
+                        events = json.loads(events)
+                    except json.JSONDecodeError:
+                        events = []
+                
+                for e in events:
+                    if e.get("slug") == event_slug:
+                        filtered_markets.append(m)
+                        break
+            return filtered_markets
         except Exception as e:
             print(f"Error fetching event markets: {e}")
             return []
@@ -158,6 +170,15 @@ class PolymarketClient:
             
             ai_events = []
             for e in events:
+                # Handle nested markets as JSON string if needed
+                markets = e.get("markets", [])
+                if isinstance(markets, str):
+                    try:
+                        markets = json.loads(markets)
+                        e["markets"] = markets  # Update in place
+                    except json.JSONDecodeError:
+                        e["markets"] = []
+                
                 title = e.get("title", "").lower()
                 if any(p in title for p in ai_patterns):
                     ai_events.append(e)
@@ -194,7 +215,22 @@ class PolymarketClient:
             resp = self.session.get(url, params=params, timeout=10)
             resp.raise_for_status()
             events = resp.json()
-            return events[0] if events else None
+            
+            if not events:
+                return None
+                
+            event = events[0]
+            
+            # Handle nested markets as JSON string if needed
+            markets = event.get("markets", [])
+            if isinstance(markets, str):
+                try:
+                    markets = json.loads(markets)
+                    event["markets"] = markets  # Update in place
+                except json.JSONDecodeError:
+                    event["markets"] = []
+            
+            return event
         except Exception as e:
             print(f"Error fetching event: {e}")
             return None
