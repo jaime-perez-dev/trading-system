@@ -14,6 +14,9 @@ async function api(path: string, options: RequestInit = {}) {
   return { status: res.status, data, headers: res.headers }
 }
 
+// Helper for unique test data
+const testEndpoint = () => `https://test-push.example.com/${Date.now()}`
+
 describe('EdgeSignals API', () => {
   // Note: These tests assume a dev server is running
   // Run: npm run dev -- -p 3456
@@ -75,6 +78,118 @@ describe('EdgeSignals API', () => {
       const { status, data } = await api('/api/waitlist')
       expect(status).toBe(200)
       expect(typeof data.count).toBe('number')
+    })
+  })
+
+  describe('POST /api/notifications/subscribe', () => {
+    it('rejects missing subscription data', async () => {
+      const { status, data } = await api('/api/notifications/subscribe', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
+      expect(status).toBe(400)
+      expect(data.error).toContain('Invalid subscription')
+    })
+
+    it('rejects subscription without keys', async () => {
+      const { status, data } = await api('/api/notifications/subscribe', {
+        method: 'POST',
+        body: JSON.stringify({
+          subscription: { endpoint: 'https://test.com' }
+        }),
+      })
+      expect(status).toBe(400)
+      expect(data.error).toContain('Invalid subscription')
+    })
+
+    it('accepts valid subscription', async () => {
+      const endpoint = testEndpoint()
+      const { status, data } = await api('/api/notifications/subscribe', {
+        method: 'POST',
+        body: JSON.stringify({
+          subscription: {
+            endpoint,
+            keys: { p256dh: 'test-key', auth: 'test-auth' }
+          },
+          userId: 'test-user',
+          tier: 'pro'
+        }),
+      })
+      expect(status).toBe(200)
+      expect(data.success).toBe(true)
+    })
+  })
+
+  describe('POST /api/notifications/unsubscribe', () => {
+    it('rejects missing endpoint', async () => {
+      const { status, data } = await api('/api/notifications/unsubscribe', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
+      expect(status).toBe(400)
+      expect(data.error).toContain('Endpoint required')
+    })
+
+    it('handles non-existent subscription gracefully', async () => {
+      const { status, data } = await api('/api/notifications/unsubscribe', {
+        method: 'POST',
+        body: JSON.stringify({ endpoint: 'https://nonexistent.example.com' }),
+      })
+      expect(status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(data.message).toContain('not found')
+    })
+
+    it('removes existing subscription', async () => {
+      // First, create a subscription
+      const endpoint = testEndpoint()
+      await api('/api/notifications/subscribe', {
+        method: 'POST',
+        body: JSON.stringify({
+          subscription: {
+            endpoint,
+            keys: { p256dh: 'test-key', auth: 'test-auth' }
+          }
+        }),
+      })
+
+      // Then remove it
+      const { status, data } = await api('/api/notifications/unsubscribe', {
+        method: 'POST',
+        body: JSON.stringify({ endpoint }),
+      })
+      expect(status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(data.message).toContain('removed')
+    })
+  })
+
+  describe('POST /api/auth/signup', () => {
+    it('rejects missing email', async () => {
+      const { status, data } = await api('/api/auth/signup', {
+        method: 'POST',
+        body: JSON.stringify({ password: 'testpass123' }),
+      })
+      expect(status).toBe(400)
+      expect(data.error).toContain('required')
+    })
+
+    it('rejects missing password', async () => {
+      const { status, data } = await api('/api/auth/signup', {
+        method: 'POST',
+        body: JSON.stringify({ email: 'test@example.com' }),
+      })
+      expect(status).toBe(400)
+      expect(data.error).toContain('required')
+    })
+
+    it('rejects empty body', async () => {
+      const { status, data } = await api('/api/auth/signup', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
+      expect(status).toBe(400)
+      expect(data.error).toContain('required')
     })
   })
 })
