@@ -203,10 +203,13 @@ class PaperTrader:
         
         return trade
     
-    def status(self) -> Dict:
+    def status(self, exclude_test: bool = False) -> Dict:
         """Get portfolio status"""
-        open_trades = [t for t in self.trades if t["status"] == "OPEN"]
-        closed_trades = [t for t in self.trades if t["status"] in ["CLOSED", "RESOLVED"]]
+        trades = self.trades
+        if exclude_test:
+            trades = [t for t in trades if not t.get("market_slug", "").startswith("test")]
+        open_trades = [t for t in trades if t["status"] == "OPEN"]
+        closed_trades = [t for t in trades if t["status"] in ["CLOSED", "RESOLVED"]]
         
         total_invested = sum(t["amount"] for t in open_trades)
         realized_pnl = sum(t.get("pnl", 0) for t in closed_trades)
@@ -253,11 +256,13 @@ class PaperTrader:
         
         return status
     
-    def list_trades(self, status_filter: Optional[str] = None) -> List[Dict]:
+    def list_trades(self, status_filter: Optional[str] = None, exclude_test: bool = False) -> List[Dict]:
         """List all trades"""
         trades = self.trades
         if status_filter:
             trades = [t for t in trades if t["status"] == status_filter.upper()]
+        if exclude_test:
+            trades = [t for t in trades if not t.get("market_slug", "").startswith("test")]
         
         for t in trades:
             emoji = {"OPEN": "🔵", "CLOSED": "⚪", "RESOLVED": "🟢" if t.get("won") else "🔴"}.get(t["status"], "⚪")
@@ -265,12 +270,36 @@ class PaperTrader:
             print(f"{emoji} #{t['id']} | {t['outcome']} @ {t['entry_price']:.1f}% | {pnl_str} | {t['question'][:40]}...")
         
         return trades
+    
+    def cleanup_test_trades(self, dry_run: bool = True) -> Dict:
+        """Remove all test trades (market_slug starting with 'test')"""
+        test_trades = [t for t in self.trades if t.get("market_slug", "").startswith("test")]
+        real_trades = [t for t in self.trades if not t.get("market_slug", "").startswith("test")]
+        
+        count = len(test_trades)
+        
+        if count == 0:
+            print("✅ No test trades found.")
+            return {"removed": 0, "remaining": len(real_trades)}
+        
+        if dry_run:
+            print(f"🔍 DRY RUN: Would remove {count} test trades, keeping {len(real_trades)} real trades.")
+            print("   Run with --confirm to actually remove them.")
+        else:
+            self.trades = real_trades
+            # Re-number remaining trades
+            for i, t in enumerate(self.trades, 1):
+                t["id"] = i
+            self._save_trades()
+            print(f"🗑️  Removed {count} test trades. {len(real_trades)} real trades remaining.")
+        
+        return {"removed": count if not dry_run else 0, "remaining": len(real_trades)}
 
 
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="Paper Trading CLI")
-    parser.add_argument("command", choices=["buy", "close", "resolve", "status", "list"])
+    parser.add_argument("command", choices=["buy", "close", "resolve", "status", "list", "cleanup"])
     parser.add_argument("--slug", help="Market slug")
     parser.add_argument("--outcome", help="Outcome (Yes/No)")
     parser.add_argument("--amount", type=float, help="Dollar amount")
@@ -278,6 +307,8 @@ def main():
     parser.add_argument("--reason", default="", help="Trade reason")
     parser.add_argument("--id", type=int, help="Trade ID")
     parser.add_argument("--won", action="store_true", help="Trade won (for resolve)")
+    parser.add_argument("--real", action="store_true", help="Exclude test trades from output")
+    parser.add_argument("--confirm", action="store_true", help="Confirm cleanup action")
     
     # Exit targets
     parser.add_argument("--tp", type=float, help="Take profit price")
@@ -309,10 +340,13 @@ def main():
         trader.resolve(args.id, args.won)
     
     elif args.command == "status":
-        trader.status()
+        trader.status(exclude_test=args.real)
     
     elif args.command == "list":
-        trader.list_trades()
+        trader.list_trades(exclude_test=args.real)
+    
+    elif args.command == "cleanup":
+        trader.cleanup_test_trades(dry_run=not args.confirm)
 
 
 if __name__ == "__main__":
