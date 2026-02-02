@@ -67,6 +67,38 @@ Service health status for monitoring and load balancers.
 
 ---
 
+## RSS Feed
+
+### GET /api/feed
+RSS 2.0 feed of recent trading signals. Useful for RSS readers, automation, and integrations.
+
+**Public:** Yes (not rate limited)
+
+**Query Parameters:**
+- `limit` (optional): Number of items (default: 20, max: 50)
+
+**Response:** RSS 2.0 XML
+
+**Content-Type:** `application/rss+xml; charset=utf-8`
+
+**Example:**
+```bash
+curl https://edgesignals.ai/api/feed
+curl https://edgesignals.ai/api/feed?limit=10
+```
+
+**Feed Items Include:**
+- Trade entries (NEW positions)
+- Trade exits (WIN/LOSS results)
+- News events with market impact
+
+**Usage:**
+- Add to any RSS reader (Feedly, Inoreader, etc.)
+- Monitor with automation tools (Zapier, Make)
+- Parse programmatically for custom alerts
+
+---
+
 ## Authentication
 
 Some endpoints require authentication via NextAuth session. Public endpoints are noted below.
