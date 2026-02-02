@@ -4,6 +4,29 @@ Base URL: `https://your-domain.com` (or `http://localhost:3000` for development)
 
 ---
 
+## OpenAPI Specification
+
+Machine-readable API documentation is available at:
+
+### GET /api/openapi
+
+Returns the OpenAPI 3.1 specification in YAML format.
+
+**Public:** Yes (not rate limited)
+
+**Content-Type:** `application/yaml`
+
+**Usage:**
+```bash
+# Download spec
+curl https://edgesignals.ai/api/openapi -o openapi.yaml
+
+# Import into Postman, Insomnia, or other API tools
+# Generate client SDKs with openapi-generator
+```
+
+---
+
 ## Rate Limiting
 
 All API endpoints (except `/api/health` and `/api/auth/*`) are rate limited.
