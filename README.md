@@ -2,6 +2,13 @@
 
 Trade prediction markets by exploiting the lag between AI news and price repricing.
 
+## ⚠️ Current Status: Paper Trading Active
+- **System is actively monitoring** AI news and markets
+- **Cron jobs configured** to run scans automatically every 30 minutes
+- **Currently showing losses** from previous trades (-$511.57 total P&L as of latest dashboard)
+- **Ready for real trading** once accounts are set up (wallet, USDC, API keys)
+- **EdgeSignals web product** built and ready for deployment at `web/`
+
 ## Quick Start
 
 ```bash
@@ -12,6 +19,12 @@ pip install -r requirements.txt
 
 # Run scanner (paper mode)
 python scanner.py --notify
+
+# Set up automated scanning (run once)
+python setup_cron.py
+
+# View portfolio
+python dashboard.py
 ```
 
 ## Architecture
@@ -25,13 +38,21 @@ trading-system/
 ├── dashboard.py         # Portfolio view + P&L
 ├── edge_tracker.py      # Manual edge logging
 ├── auto_monitor.py      # News + price automation
+├── setup_cron.py        # Automated job scheduler
 ├── polymarket/          # Polymarket CLOB client
 ├── kalshi/              # Kalshi API client
-├── metaculus/           # Metaculus forecasts
+├── metaculus/          # Metaculus forecasts
 ├── monitors/            # RSS news monitors
 ├── alerts/              # Telegram notifier + position monitor
 └── web/                 # EdgeSignals product (Next.js)
 ```
+
+## Automated Operations
+The system now runs automatically with these scheduled tasks:
+- Scanner runs every 30 minutes to find opportunities
+- Position monitor runs every 15 minutes to track open positions
+- Dashboard updates hourly to refresh stats
+- Auto-monitor runs hourly to check news and prices
 
 ## Key Commands
 
@@ -84,5 +105,6 @@ Test coverage:
 - **Goal:** $10k/month
 - **EdgeSignals:** Web product at `web/`
 - **Tests:** 29 Python + API tests passing
+- **Automation:** Cron jobs running for continuous monitoring
 
 See `PROJECT.md` for full roadmap.

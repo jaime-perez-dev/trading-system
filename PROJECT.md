@@ -93,7 +93,7 @@ Stack: Next.js 16 + TypeScript + Tailwind CSS + shadcn/ui
 - [ ] **Improve news sources** — add Twitter/X, official blogs
 
 #### Day 7: Automation (PRIORITY: MEDIUM)
-- [ ] **Add cron scheduling** — run scanner every 15-30 mins
+- [x] **Add cron scheduling** — ✅ run scanner every 30 mins via `setup_cron.py`
 - [ ] **Heartbeat integration** — periodic checks via main agent
 - [ ] **Error handling/logging** — robust operation
 
