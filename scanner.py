@@ -17,6 +17,7 @@ from monitors.news_monitor import NewsMonitor
 from monitors.web_scraper import WebScraper
 from polymarket.client import PolymarketClient
 from alerts.telegram_notifier import TelegramNotifier
+from correlation_tracker import CorrelationTracker, NewsEvent
 
 # Market mappings: keywords -> relevant Polymarket searches
 MARKET_MAPPINGS = {
