@@ -1,127 +1,148 @@
-"""
-Unit tests for alerts/exit_tracker.py
-Tests position tracking, exit targets, and P&L calculations.
-"""
+#!/usr/bin/env python3
+"""Unit tests for ExitTracker."""
+
 import json
-import pytest
+import tempfile
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-from datetime import datetime, timezone
-
+import pytest
 import sys
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from alerts.exit_tracker import ExitTracker
 
 
 @pytest.fixture
-def temp_data_dir(tmp_path):
-    """Create a temporary data directory for tests."""
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-    return data_dir
+def temp_data_dir():
+    """Create temporary data directory for testing."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        yield Path(tmpdir)
 
 
 @pytest.fixture
-def tracker(temp_data_dir, monkeypatch):
-    """Create ExitTracker with mocked paths and disabled notifications."""
-    with patch('alerts.exit_tracker.TelegramNotifier'):
-        tracker = ExitTracker(notify=False)
-        tracker.data_dir = temp_data_dir
-        tracker.targets_file = temp_data_dir / "exit_targets.json"
-        tracker.trades_file = temp_data_dir / "paper_trades.json"
-        return tracker
+def tracker(temp_data_dir):
+    """Create ExitTracker with mocked paths."""
+    with patch.object(ExitTracker, '__init__', lambda self, notify=True: None):
+        t = ExitTracker()
+        t.polymarket = MagicMock()
+        t.notifier = MagicMock()
+        t.data_dir = temp_data_dir
+        t.targets_file = temp_data_dir / "exit_targets.json"
+        t.trades_file = temp_data_dir / "paper_trades.json"
+        return t
 
 
 class TestLoadPositions:
-    """Tests for load_positions method."""
+    """Tests for load_positions."""
     
-    def test_returns_empty_list_when_no_file(self, tracker):
-        """Should return empty list when trades file doesn't exist."""
+    def test_no_file_returns_empty(self, tracker):
+        """Return empty list when trades file doesn't exist."""
         result = tracker.load_positions()
         assert result == []
     
-    def test_returns_only_open_positions(self, tracker):
-        """Should filter to only OPEN positions."""
+    def test_loads_open_positions_only(self, tracker):
+        """Only return positions with status OPEN."""
         trades = [
             {"id": 1, "status": "OPEN", "market_slug": "test-1"},
             {"id": 2, "status": "CLOSED", "market_slug": "test-2"},
             {"id": 3, "status": "OPEN", "market_slug": "test-3"},
         ]
-        tracker.trades_file.write_text(json.dumps(trades))
+        with open(tracker.trades_file, "w") as f:
+            json.dump(trades, f)
         
         result = tracker.load_positions()
         assert len(result) == 2
-        assert all(p["status"] == "OPEN" for p in result)
-
-
-class TestLoadSaveTargets:
-    """Tests for load_targets and save_targets methods."""
+        assert result[0]["id"] == 1
+        assert result[1]["id"] == 3
     
-    def test_returns_empty_dict_when_no_file(self, tracker):
-        """Should return empty dict when targets file doesn't exist."""
+    def test_filters_by_status(self, tracker):
+        """Filter out positions without OPEN status."""
+        trades = [
+            {"id": 1, "status": "PENDING"},
+            {"id": 2, "status": "CLOSED"},
+            {"id": 3},  # No status
+        ]
+        with open(tracker.trades_file, "w") as f:
+            json.dump(trades, f)
+        
+        result = tracker.load_positions()
+        assert result == []
+
+
+class TestLoadAndSaveTargets:
+    """Tests for load_targets and save_targets."""
+    
+    def test_no_file_returns_empty_dict(self, tracker):
+        """Return empty dict when targets file doesn't exist."""
         result = tracker.load_targets()
         assert result == {}
     
     def test_loads_existing_targets(self, tracker):
-        """Should load targets from existing file."""
+        """Load targets from file."""
         targets = {
-            "1": {"take_profit": 95.0, "stop_loss": 85.0},
-            "2": {"take_profit": 90.0}
+            "1": {"take_profit": 95.0, "stop_loss": 80.0},
+            "2": {"trailing_stop": 5.0, "peak_price": 90.0}
         }
-        tracker.targets_file.write_text(json.dumps(targets))
+        with open(tracker.targets_file, "w") as f:
+            json.dump(targets, f)
+        
+        result = tracker.load_targets()
+        assert result["1"]["take_profit"] == 95.0
+        assert result["2"]["trailing_stop"] == 5.0
+    
+    def test_save_and_reload(self, tracker):
+        """Save targets and reload them."""
+        targets = {
+            "42": {"take_profit": 98.0, "stop_loss": 85.0, "trailing_stop": None}
+        }
+        tracker.save_targets(targets)
         
         result = tracker.load_targets()
         assert result == targets
-    
-    def test_saves_targets_to_file(self, tracker):
-        """Should write targets to JSON file."""
-        targets = {"1": {"take_profit": 98.0, "stop_loss": 80.0}}
-        tracker.save_targets(targets)
-        
-        assert tracker.targets_file.exists()
-        saved = json.loads(tracker.targets_file.read_text())
-        assert saved == targets
 
 
 class TestSetExitTarget:
-    """Tests for set_exit_target method."""
+    """Tests for set_exit_target."""
     
-    def test_sets_take_profit_target(self, tracker, capsys):
-        """Should set take profit target."""
+    def test_sets_take_profit(self, tracker, capsys):
+        """Set take profit target."""
         tracker.set_exit_target(1, take_profit=95.0)
         
         targets = tracker.load_targets()
         assert "1" in targets
         assert targets["1"]["take_profit"] == 95.0
         assert targets["1"]["stop_loss"] is None
+        assert targets["1"]["trailing_stop"] is None
+        assert "set_at" in targets["1"]
         
         captured = capsys.readouterr()
-        assert "Take profit: 95.0%" in captured.out
+        assert "Exit targets set" in captured.out
+        assert "95.0%" in captured.out
     
-    def test_sets_stop_loss_target(self, tracker, capsys):
-        """Should set stop loss target."""
+    def test_sets_stop_loss(self, tracker, capsys):
+        """Set stop loss target."""
         tracker.set_exit_target(2, stop_loss=80.0)
         
         targets = tracker.load_targets()
         assert targets["2"]["stop_loss"] == 80.0
         
         captured = capsys.readouterr()
-        assert "Stop loss: 80.0%" in captured.out
+        assert "80.0%" in captured.out
     
     def test_sets_trailing_stop(self, tracker, capsys):
-        """Should set trailing stop."""
+        """Set trailing stop target."""
         tracker.set_exit_target(3, trailing_stop=5.0)
         
         targets = tracker.load_targets()
         assert targets["3"]["trailing_stop"] == 5.0
-        assert targets["3"]["peak_price"] is None
+        assert targets["3"]["peak_price"] is None  # Peak set on first check
         
         captured = capsys.readouterr()
-        assert "Trailing stop: 5.0pp" in captured.out
+        assert "5.0pp" in captured.out
     
     def test_sets_multiple_targets(self, tracker):
-        """Should set all targets at once."""
+        """Set all target types at once."""
         tracker.set_exit_target(4, take_profit=98.0, stop_loss=85.0, trailing_stop=3.0)
         
         targets = tracker.load_targets()
@@ -129,245 +150,355 @@ class TestSetExitTarget:
         assert targets["4"]["stop_loss"] == 85.0
         assert targets["4"]["trailing_stop"] == 3.0
     
-    def test_includes_timestamp(self, tracker):
-        """Should include set_at timestamp."""
+    def test_overwrites_existing_target(self, tracker):
+        """Overwrite existing target for same position."""
         tracker.set_exit_target(5, take_profit=90.0)
+        tracker.set_exit_target(5, take_profit=95.0, stop_loss=80.0)
         
         targets = tracker.load_targets()
-        assert "set_at" in targets["5"]
-        # Should be valid ISO format
-        datetime.fromisoformat(targets["5"]["set_at"].replace("Z", "+00:00"))
+        assert targets["5"]["take_profit"] == 95.0
+        assert targets["5"]["stop_loss"] == 80.0
 
 
 class TestGetCurrentPrice:
-    """Tests for get_current_price method."""
+    """Tests for get_current_price."""
     
-    def test_returns_price_on_success(self, tracker):
-        """Should return price from API response."""
+    def test_fetches_price_success(self, tracker):
+        """Fetch and parse price from API."""
         mock_response = MagicMock()
         mock_response.ok = True
-        mock_response.json.return_value = [{"outcomePrices": "[0.75, 0.25]"}]
+        mock_response.json.return_value = [{"outcomePrices": "[0.85, 0.15]"}]
         
-        with patch('requests.get', return_value=mock_response):
+        with patch("requests.get", return_value=mock_response):
             price = tracker.get_current_price("test-market")
         
-        assert price == 75.0
+        assert price == 85.0
     
-    def test_handles_list_format_prices(self, tracker):
-        """Should handle prices as list instead of JSON string."""
+    def test_handles_list_prices(self, tracker):
+        """Handle outcomePrices as list instead of string."""
         mock_response = MagicMock()
         mock_response.ok = True
-        mock_response.json.return_value = [{"outcomePrices": [0.82, 0.18]}]
+        mock_response.json.return_value = [{"outcomePrices": [0.72, 0.28]}]
         
-        with patch('requests.get', return_value=mock_response):
+        with patch("requests.get", return_value=mock_response):
             price = tracker.get_current_price("test-market")
         
-        assert price == 82.0
+        assert price == 72.0
     
     def test_returns_none_on_error(self, tracker):
-        """Should return None on API error."""
-        with patch('requests.get', side_effect=Exception("Network error")):
+        """Return None when API fails."""
+        with patch("requests.get", side_effect=Exception("Network error")):
             price = tracker.get_current_price("test-market")
         
         assert price is None
     
     def test_returns_none_on_empty_response(self, tracker):
-        """Should return None when no data returned."""
+        """Return None when API returns empty data."""
         mock_response = MagicMock()
         mock_response.ok = True
         mock_response.json.return_value = []
         
-        with patch('requests.get', return_value=mock_response):
+        with patch("requests.get", return_value=mock_response):
+            price = tracker.get_current_price("test-market")
+        
+        assert price is None
+    
+    def test_returns_none_on_bad_response(self, tracker):
+        """Return None when response is not ok."""
+        mock_response = MagicMock()
+        mock_response.ok = False
+        
+        with patch("requests.get", return_value=mock_response):
             price = tracker.get_current_price("test-market")
         
         assert price is None
 
 
 class TestCheckExits:
-    """Tests for check_exits method."""
+    """Tests for check_exits."""
     
-    def test_returns_empty_when_no_positions(self, tracker, capsys):
-        """Should return empty list when no positions."""
+    def test_no_positions(self, tracker, capsys):
+        """Handle no open positions."""
         result = tracker.check_exits()
         
         assert result == []
         captured = capsys.readouterr()
         assert "No open positions" in captured.out
     
-    def test_detects_take_profit_trigger(self, tracker):
-        """Should detect when take profit is hit."""
+    def test_take_profit_triggered(self, tracker):
+        """Trigger take profit when price exceeds target."""
         # Setup position
         trades = [{
             "id": 1,
             "status": "OPEN",
             "market_slug": "test-market",
-            "question": "Test Question?",
-            "entry_price": 60.0,
+            "question": "Test Question",
+            "entry_price": 80.0,
             "amount": 100,
-            "shares": 166.67,
+            "shares": 125,
             "outcome": "Yes"
         }]
-        tracker.trades_file.write_text(json.dumps(trades))
+        with open(tracker.trades_file, "w") as f:
+            json.dump(trades, f)
         
         # Setup target
-        tracker.set_exit_target(1, take_profit=80.0)
+        tracker.set_exit_target(1, take_profit=95.0)
         
-        # Mock price above take profit
-        with patch.object(tracker, 'get_current_price', return_value=85.0):
+        # Mock price at 96% (above TP)
+        with patch.object(tracker, "get_current_price", return_value=96.0):
             triggered = tracker.check_exits()
         
         assert len(triggered) == 1
         assert triggered[0]["type"] == "take_profit"
-        assert triggered[0]["current_price"] == 85.0
+        assert triggered[0]["current_price"] == 96.0
+        assert triggered[0]["trigger_price"] == 95.0
     
-    def test_detects_stop_loss_trigger(self, tracker):
-        """Should detect when stop loss is hit."""
+    def test_stop_loss_triggered(self, tracker):
+        """Trigger stop loss when price falls below target."""
         trades = [{
-            "id": 1,
+            "id": 2,
             "status": "OPEN",
             "market_slug": "test-market",
-            "question": "Test?",
-            "entry_price": 70.0,
+            "question": "Test Question",
+            "entry_price": 80.0,
             "amount": 100,
-            "shares": 142.86,
+            "shares": 125,
             "outcome": "Yes"
         }]
-        tracker.trades_file.write_text(json.dumps(trades))
+        with open(tracker.trades_file, "w") as f:
+            json.dump(trades, f)
         
-        tracker.set_exit_target(1, stop_loss=65.0)
+        tracker.set_exit_target(2, stop_loss=70.0)
         
-        # Mock price below stop loss
-        with patch.object(tracker, 'get_current_price', return_value=60.0):
+        with patch.object(tracker, "get_current_price", return_value=65.0):
             triggered = tracker.check_exits()
         
         assert len(triggered) == 1
         assert triggered[0]["type"] == "stop_loss"
+        assert triggered[0]["current_price"] == 65.0
     
-    def test_detects_trailing_stop_trigger(self, tracker):
-        """Should detect trailing stop when price drops from peak."""
+    def test_trailing_stop_updates_peak(self, tracker):
+        """Update peak price for trailing stop."""
         trades = [{
-            "id": 1,
+            "id": 3,
             "status": "OPEN",
             "market_slug": "test-market",
-            "question": "Test?",
-            "entry_price": 50.0,
+            "question": "Test Question",
+            "entry_price": 80.0,
             "amount": 100,
-            "shares": 200,
+            "shares": 125,
             "outcome": "Yes"
         }]
-        tracker.trades_file.write_text(json.dumps(trades))
+        with open(tracker.trades_file, "w") as f:
+            json.dump(trades, f)
         
-        # Set trailing stop with existing peak
+        tracker.set_exit_target(3, trailing_stop=5.0)
+        
+        # Price at 90 - should set peak
+        with patch.object(tracker, "get_current_price", return_value=90.0):
+            triggered = tracker.check_exits()
+        
+        targets = tracker.load_targets()
+        assert targets["3"]["peak_price"] == 90.0
+        assert len(triggered) == 0  # Not triggered yet
+    
+    def test_trailing_stop_triggered(self, tracker):
+        """Trigger trailing stop when price drops below peak - distance."""
+        trades = [{
+            "id": 4,
+            "status": "OPEN",
+            "market_slug": "test-market",
+            "question": "Test Question",
+            "entry_price": 80.0,
+            "amount": 100,
+            "shares": 125,
+            "outcome": "Yes"
+        }]
+        with open(tracker.trades_file, "w") as f:
+            json.dump(trades, f)
+        
+        # Set trailing stop with peak already at 95
         targets = {
-            "1": {
+            "4": {
                 "take_profit": None,
                 "stop_loss": None,
-                "trailing_stop": 10.0,
-                "peak_price": 80.0,
-                "set_at": datetime.now(timezone.utc).isoformat()
+                "trailing_stop": 5.0,
+                "peak_price": 95.0,
+                "set_at": "2026-02-01T00:00:00Z"
             }
         }
         tracker.save_targets(targets)
         
-        # Price drops more than 10pp from peak (80 - 10 = 70, current is 65)
-        with patch.object(tracker, 'get_current_price', return_value=65.0):
+        # Price drops to 89 (below 95-5=90)
+        with patch.object(tracker, "get_current_price", return_value=89.0):
             triggered = tracker.check_exits()
         
         assert len(triggered) == 1
         assert triggered[0]["type"] == "trailing_stop"
+        assert triggered[0]["trigger_price"] == 90.0
     
-    def test_updates_peak_price_for_trailing_stop(self, tracker):
-        """Should update peak price when current exceeds it."""
+    def test_no_trigger_within_targets(self, tracker):
+        """No trigger when price is within bounds."""
         trades = [{
-            "id": 1,
+            "id": 5,
             "status": "OPEN",
             "market_slug": "test-market",
-            "question": "Test?",
-            "entry_price": 50.0,
+            "question": "Test Question",
+            "entry_price": 80.0,
             "amount": 100,
-            "shares": 200,
+            "shares": 125,
             "outcome": "Yes"
         }]
-        tracker.trades_file.write_text(json.dumps(trades))
+        with open(tracker.trades_file, "w") as f:
+            json.dump(trades, f)
         
-        tracker.set_exit_target(1, trailing_stop=5.0)
+        tracker.set_exit_target(5, take_profit=95.0, stop_loss=70.0)
         
-        # Price goes up
-        with patch.object(tracker, 'get_current_price', return_value=75.0):
+        # Price at 85 - within bounds
+        with patch.object(tracker, "get_current_price", return_value=85.0):
+            triggered = tracker.check_exits()
+        
+        assert len(triggered) == 0
+    
+    def test_handles_price_fetch_failure(self, tracker, capsys):
+        """Continue checking when price fetch fails for one position."""
+        trades = [
+            {"id": 6, "status": "OPEN", "market_slug": "fail-market", "question": "Fail"},
+            {"id": 7, "status": "OPEN", "market_slug": "ok-market", "question": "OK",
+             "entry_price": 80.0, "amount": 100, "shares": 125, "outcome": "Yes"},
+        ]
+        with open(tracker.trades_file, "w") as f:
+            json.dump(trades, f)
+        
+        def mock_price(slug):
+            if slug == "fail-market":
+                return None
+            return 85.0
+        
+        with patch.object(tracker, "get_current_price", side_effect=mock_price):
             tracker.check_exits()
         
-        targets = tracker.load_targets()
-        assert targets["1"]["peak_price"] == 75.0
+        captured = capsys.readouterr()
+        assert "Could not fetch" in captured.out
     
-    def test_calculates_pnl_correctly(self, tracker, capsys):
-        """Should calculate P&L correctly for Yes positions."""
+    def test_pnl_calculation_yes_outcome(self, tracker):
+        """Calculate P&L for Yes outcome correctly."""
         trades = [{
-            "id": 1,
+            "id": 8,
             "status": "OPEN",
-            "market_slug": "test-market",
-            "question": "Test?",
-            "entry_price": 50.0,
+            "market_slug": "test",
+            "question": "Test",
+            "entry_price": 50.0,  # Bought at 50%
             "amount": 100,
             "shares": 200,  # $100 / 0.50 = 200 shares
             "outcome": "Yes"
         }]
-        tracker.trades_file.write_text(json.dumps(trades))
+        with open(tracker.trades_file, "w") as f:
+            json.dump(trades, f)
         
-        # Price goes to 75% = +25pp * 200 shares / 100 = $50 profit
-        with patch.object(tracker, 'get_current_price', return_value=75.0):
-            tracker.check_exits()
+        tracker.set_exit_target(8, take_profit=80.0)
         
-        captured = capsys.readouterr()
-        assert "+50.00" in captured.out or "+$50" in captured.out
+        # Price went to 80% - P&L should be (80-50)*200/100 = $60
+        with patch.object(tracker, "get_current_price", return_value=80.0):
+            triggered = tracker.check_exits()
+        
+        assert triggered[0]["pnl"] == 60.0
+    
+    def test_pnl_calculation_no_outcome(self, tracker):
+        """Calculate P&L for No outcome (inverted)."""
+        trades = [{
+            "id": 9,
+            "status": "OPEN",
+            "market_slug": "test",
+            "question": "Test",
+            "entry_price": 50.0,  # No at 50% (Yes at 50%)
+            "amount": 100,
+            "shares": 200,
+            "outcome": "No"
+        }]
+        with open(tracker.trades_file, "w") as f:
+            json.dump(trades, f)
+        
+        tracker.set_exit_target(9, take_profit=30.0)  # Profit if Yes drops
+        
+        # Yes price dropped to 30% - our No went up
+        # P&L = (entry - current) * shares / 100 = (50-30)*200/100 = $40
+        with patch.object(tracker, "get_current_price", return_value=30.0):
+            triggered = tracker.check_exits()
+        
+        assert triggered[0]["pnl"] == 40.0
 
 
 class TestSendExitAlert:
-    """Tests for _send_exit_alert method."""
+    """Tests for _send_exit_alert."""
     
-    def test_does_not_send_when_notify_disabled(self, tracker):
-        """Should not send when notifier is None."""
-        position = {"id": 1, "question": "Test?", "outcome": "Yes", "entry_price": 50, "amount": 100}
+    def test_sends_take_profit_alert(self, tracker):
+        """Send formatted take profit alert."""
+        position = {
+            "id": 1,
+            "question": "Test Market Question",
+            "outcome": "Yes",
+            "entry_price": 80.0,
+            "amount": 100
+        }
+        
+        tracker._send_exit_alert(position, 96.0, "take_profit", 95.0)
+        
+        tracker.notifier.send_message.assert_called_once()
+        message = tracker.notifier.send_message.call_args[0][0]
+        assert "TAKE PROFIT" in message
+        assert "🎉" in message
+        assert "Test Market Question" in message
+    
+    def test_sends_stop_loss_alert(self, tracker):
+        """Send formatted stop loss alert."""
+        position = {"id": 2, "question": "Test", "outcome": "Yes", "entry_price": 80.0, "amount": 100}
+        
+        tracker._send_exit_alert(position, 65.0, "stop_loss", 70.0)
+        
+        message = tracker.notifier.send_message.call_args[0][0]
+        assert "STOP LOSS" in message
+        assert "🛑" in message
+    
+    def test_sends_trailing_stop_alert(self, tracker):
+        """Send formatted trailing stop alert."""
+        position = {"id": 3, "question": "Test", "outcome": "Yes", "entry_price": 80.0, "amount": 100}
+        
+        tracker._send_exit_alert(position, 89.0, "trailing_stop", 90.0)
+        
+        message = tracker.notifier.send_message.call_args[0][0]
+        assert "TRAILING STOP" in message
+        assert "📉" in message
+    
+    def test_no_alert_when_notifier_disabled(self, tracker):
+        """Don't crash when notifier is None."""
+        tracker.notifier = None
+        position = {"id": 4, "question": "Test", "outcome": "Yes", "entry_price": 80.0, "amount": 100}
         
         # Should not raise
-        tracker._send_exit_alert(position, 80.0, "take_profit", 75.0)
-    
-    def test_sends_alert_when_notify_enabled(self, temp_data_dir):
-        """Should send notification when enabled."""
-        mock_notifier = MagicMock()
-        
-        with patch('alerts.exit_tracker.TelegramNotifier', return_value=mock_notifier):
-            tracker = ExitTracker(notify=True)
-            tracker.data_dir = temp_data_dir
-            tracker.targets_file = temp_data_dir / "exit_targets.json"
-            tracker.trades_file = temp_data_dir / "paper_trades.json"
-            
-            position = {"id": 1, "question": "Test?", "outcome": "Yes", "entry_price": 50, "amount": 100}
-            tracker._send_exit_alert(position, 80.0, "take_profit", 75.0)
-        
-        mock_notifier.send_message.assert_called_once()
-        call_args = mock_notifier.send_message.call_args[0][0]
-        assert "TAKE PROFIT" in call_args
+        tracker._send_exit_alert(position, 96.0, "take_profit", 95.0)
 
 
 class TestPortfolioSummary:
-    """Tests for portfolio_summary method."""
+    """Tests for portfolio_summary."""
     
-    def test_returns_empty_when_no_positions(self, tracker):
-        """Should return empty positions list."""
+    def test_empty_portfolio(self, tracker):
+        """Handle empty portfolio."""
         summary = tracker.portfolio_summary()
         
         assert summary["positions"] == []
         assert summary["total_invested"] == 0
         assert summary["total_unrealized_pnl"] == 0
+        assert "timestamp" in summary
     
-    def test_calculates_portfolio_totals(self, tracker):
-        """Should calculate total invested and P&L."""
+    def test_calculates_unrealized_pnl(self, tracker):
+        """Calculate unrealized P&L for all positions."""
         trades = [
             {
                 "id": 1,
                 "status": "OPEN",
                 "market_slug": "market-1",
-                "question": "Q1?",
+                "question": "Question 1",
                 "entry_price": 50.0,
                 "amount": 100,
                 "shares": 200,
@@ -377,73 +508,67 @@ class TestPortfolioSummary:
                 "id": 2,
                 "status": "OPEN",
                 "market_slug": "market-2",
-                "question": "Q2?",
-                "entry_price": 60.0,
-                "amount": 150,
-                "shares": 250,
+                "question": "Question 2",
+                "entry_price": 40.0,
+                "amount": 50,
+                "shares": 125,
                 "outcome": "Yes"
             }
         ]
-        tracker.trades_file.write_text(json.dumps(trades))
+        with open(tracker.trades_file, "w") as f:
+            json.dump(trades, f)
         
-        # Market 1: 50 -> 70 = +20pp * 200 / 100 = +$40
-        # Market 2: 60 -> 55 = -5pp * 250 / 100 = -$12.50
         def mock_price(slug):
-            return {"market-1": 70.0, "market-2": 55.0}.get(slug, 50.0)
+            return {"market-1": 70.0, "market-2": 60.0}.get(slug)
         
-        with patch.object(tracker, 'get_current_price', side_effect=mock_price):
+        with patch.object(tracker, "get_current_price", side_effect=mock_price):
             summary = tracker.portfolio_summary()
         
-        assert summary["total_invested"] == 250
-        assert abs(summary["total_unrealized_pnl"] - 27.5) < 0.01  # 40 - 12.5 = 27.5
+        assert len(summary["positions"]) == 2
+        assert summary["total_invested"] == 150
+        
+        # Position 1: (70-50)*200/100 = $40
+        # Position 2: (60-40)*125/100 = $25
+        assert summary["total_unrealized_pnl"] == 65.0
     
-    def test_includes_position_details(self, tracker):
-        """Should include individual position details."""
+    def test_uses_entry_price_on_fetch_failure(self, tracker):
+        """Use entry price when current price fetch fails."""
         trades = [{
             "id": 1,
             "status": "OPEN",
             "market_slug": "test",
-            "question": "Test Question?",
-            "entry_price": 40.0,
+            "question": "Test",
+            "entry_price": 80.0,
             "amount": 100,
-            "shares": 250,
+            "shares": 125,
             "outcome": "Yes"
         }]
-        tracker.trades_file.write_text(json.dumps(trades))
+        with open(tracker.trades_file, "w") as f:
+            json.dump(trades, f)
         
-        with patch.object(tracker, 'get_current_price', return_value=60.0):
+        with patch.object(tracker, "get_current_price", return_value=None):
             summary = tracker.portfolio_summary()
         
-        assert len(summary["positions"]) == 1
-        pos = summary["positions"][0]
-        assert pos["id"] == 1
-        assert pos["market"] == "Test Question?"
-        assert pos["entry"] == 40.0
-        assert pos["current"] == 60.0
-        assert pos["pnl"] == 50.0  # (60-40) * 250 / 100 = 50
-        assert pos["pnl_pct"] == 50.0  # 50/100 * 100 = 50%
+        assert summary["positions"][0]["current"] == 80.0
+        assert summary["positions"][0]["pnl"] == 0
     
-    def test_handles_no_outcome_for_fallback(self, tracker):
-        """Should calculate P&L for No positions correctly."""
+    def test_includes_pnl_percentage(self, tracker):
+        """Include P&L percentage in summary."""
         trades = [{
             "id": 1,
             "status": "OPEN",
             "market_slug": "test",
-            "question": "Test?",
-            "entry_price": 70.0,  # Bought No at 70%
+            "question": "Test",
+            "entry_price": 50.0,
             "amount": 100,
-            "shares": 142.86,
-            "outcome": "No"
+            "shares": 200,
+            "outcome": "Yes"
         }]
-        tracker.trades_file.write_text(json.dumps(trades))
+        with open(tracker.trades_file, "w") as f:
+            json.dump(trades, f)
         
-        # No position profits when Yes price goes down (our 70% No means Yes was 30%)
-        # Now Yes is 20%, so No is 80% -> profit
-        # P&L = (entry - current_yes_price) * shares / 100
-        # But outcome is No, so we calculate: (70 - 40) * 142.86 / 100 = 42.86
-        with patch.object(tracker, 'get_current_price', return_value=40.0):
+        with patch.object(tracker, "get_current_price", return_value=75.0):
             summary = tracker.portfolio_summary()
         
-        # For No outcome: pnl = (entry - current) * shares / 100
-        # = (70 - 40) * 142.86 / 100 = 42.86
-        assert abs(summary["positions"][0]["pnl"] - 42.86) < 0.1
+        # P&L = (75-50)*200/100 = $50, which is 50% of $100 invested
+        assert summary["positions"][0]["pnl_pct"] == 50.0
