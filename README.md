@@ -39,11 +39,15 @@ trading-system/
 ├── edge_tracker.py      # Manual edge logging
 ├── auto_monitor.py      # News + price automation
 ├── setup_cron.py        # Automated job scheduler
+├── pre_trade_checklist.py # Validates trades before entry
+├── trade_analyzer.py    # Post-mortem analysis
+├── risk_manager.py      # Centralized risk rules
 ├── polymarket/          # Polymarket CLOB client
 ├── kalshi/              # Kalshi API client
-├── metaculus/          # Metaculus forecasts
-├── monitors/            # RSS news monitors
-├── alerts/              # Telegram notifier + position monitor
+├── metaculus/           # Metaculus forecasts
+├── monitors/            # RSS + Tavily news monitors
+├── alerts/              # Telegram notifier + position/exit monitors
+├── reports/             # Performance report generator
 └── web/                 # EdgeSignals product (Next.js)
 ```
 
@@ -66,7 +70,19 @@ python multi_scanner.py
 # View portfolio
 python dashboard.py
 
-# Run news monitor
+# Generate performance report
+python reports/performance_report.py --type summary
+
+# Analyze past trades
+python trade_analyzer.py
+
+# Run pre-trade checklist
+python pre_trade_checklist.py --market <slug> --price 0.50 --amount 100
+
+# Search AI news (Tavily)
+python monitors/tavily_search.py -q "OpenAI GPT"
+
+# Run RSS news monitor
 python -m monitors.news_monitor
 ```
 
@@ -95,16 +111,18 @@ cd web && bun test
 ```
 
 Test coverage:
+- **433 Python tests** covering all core modules
 - `tests/test_paper_trader.py` — PaperTrader class, share calculations, P&L math
 - `tests/test_scanner.py` — Filtering, scoring, risk limits, Kelly criterion
-- `web/tests/api.test.ts` — EdgeSignals API endpoints
+- `tests/test_*.py` — All modules have comprehensive test coverage
+- `web/tests/` — EdgeSignals API endpoints (65 tests)
 
 ## Status
 
 - **Mode:** Paper trading (validation phase)
 - **Goal:** $10k/month
 - **EdgeSignals:** Web product at `web/`
-- **Tests:** 29 Python + API tests passing
+- **Tests:** 433 Python + 65 TypeScript tests passing
 - **Automation:** Cron jobs running for continuous monitoring
 
 See `PROJECT.md` for full roadmap.
