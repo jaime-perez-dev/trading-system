@@ -65,9 +65,9 @@ Stack: Next.js 16 + TypeScript + Tailwind CSS + shadcn/ui
 - [x] Position monitor price fetch — was using search (wrong results), now uses slug API
 
 ### Active Issues
-- [ ] No scheduled execution (cron/heartbeat)
+- [x] ~~No scheduled execution~~ — ✅ `setup_cron.py` + SCHEDULED_TASKS.md
 - [x] ~~No real trading integration~~ — ✅ CLOB client integrated (`polymarket/real_trader.py`)
-- [ ] Web search unavailable (no Brave API key)
+- [x] ~~Web search unavailable~~ — ✅ Tavily integration (`monitors/tavily_search.py`)
 - [ ] Wallet setup needed — See `docs/REAL_TRADING_SETUP.md`
 
 ---
