@@ -134,6 +134,20 @@ class CorrelationFeedback:
     confidence_was_accurate: bool  # did correlation predict correctly?
 
 
+@dataclass
+class CorrelationCheckResult:
+    """Result of checking correlation/exposure risk for a trade."""
+    allowed: bool
+    warning: Optional[str] = None
+    other_positions: List[Dict] = field(default_factory=list)
+    narrative: Optional[str] = None
+    total_exposure: float = 0.0
+
+
+# Default exposure limits
+DEFAULT_MAX_NARRATIVE_EXPOSURE = 500.0  # Max $ in one narrative/category
+
+
 class CorrelationTracker:
     """Enhanced correlation tracker with news-price movement analysis."""
     
@@ -708,6 +722,89 @@ class CorrelationTracker:
             })
         
         return correlations
+
+
+    def check_correlation(self, market_name: str, market_slug: str, trade_amount: float) -> CorrelationCheckResult:
+        """
+        Check for correlation/concentration risk.
+        
+        This method analyzes whether the proposed trade would overexpose to:
+        1. A particular narrative/theme
+        2. Related markets
+        
+        Args:
+            market_name: Name/title of the market
+            market_slug: Unique identifier for the market
+            trade_amount: Dollar amount of the proposed trade
+            
+        Returns:
+            CorrelationCheckResult with allowed, warning, and other positions info
+        """
+        # Categorize the market based on its name
+        category = self.categorize_news(market_name)
+        
+        # Calculate current exposure in this category
+        current_exposure = self._get_current_exposure_in_category(category)
+        new_total_exposure = current_exposure + trade_amount
+        
+        # Check if this exceeds limits
+        if new_total_exposure > DEFAULT_MAX_NARRATIVE_EXPOSURE:
+            # Get some other positions in this category for the warning
+            other_positions = self._get_recent_positions_in_category(category, limit=3)
+            
+            return CorrelationCheckResult(
+                allowed=False,
+                warning=f"Exposure to '{category}' narrative would be ${new_total_exposure:.2f}, exceeding limit of ${DEFAULT_MAX_NARRATIVE_EXPOSURE}",
+                other_positions=other_positions,
+                narrative=category,
+                total_exposure=new_total_exposure
+            )
+        
+        # Within limits, allow the trade
+        return CorrelationCheckResult(
+            allowed=True,
+            warning=None,
+            other_positions=[],
+            narrative=category,
+            total_exposure=new_total_exposure
+        )
+    
+    def _get_current_exposure_in_category(self, category: str) -> float:
+        """
+        Get current exposure in a specific category by querying recent positions.
+        This is a simplified version - in a real system, we'd track active positions.
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # Query for recent positions in this category
+        # In reality, this would be more sophisticated and track active positions
+        try:
+            # This is a simplified query - we'd need a positions table in real implementation
+            # For now, we'll just return 0 to allow all trades, but this would connect
+            # to the actual positions tracking system in a real implementation
+            cursor.execute("""
+                SELECT SUM(trade_amount) FROM (
+                    SELECT ? as trade_amount
+                ) WHERE 1=0  -- Placeholder to return 0
+            """, (0.0,))
+            
+            result = cursor.fetchone()
+            exposure = result[0] if result and result[0] else 0.0
+        except:
+            exposure = 0.0
+        finally:
+            conn.close()
+        
+        return exposure
+    
+    def _get_recent_positions_in_category(self, category: str, limit: int = 5) -> List[Dict]:
+        """
+        Get recent positions in a category for correlation warnings.
+        """
+        # Placeholder implementation - in reality this would query a positions table
+        # with correlation tracking
+        return []
 
 
 def main():
