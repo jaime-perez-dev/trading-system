@@ -573,5 +573,20 @@
     "status": "OPEN",
     "exit_price": null,
     "pnl": null
+  },
+  {
+    "id": 39,
+    "type": "BUY",
+    "market_slug": "test-high-price",
+    "question": "test-high-price",
+    "outcome": "Yes",
+    "entry_price": 90.0,
+    "amount": 100,
+    "shares": 111.11111111111111,
+    "reason": "Test high price entry",
+    "timestamp": "2026-02-02T17:23:15.870316+00:00",
+    "status": "OPEN",
+    "exit_price": null,
+    "pnl": null
   }
 ]
