@@ -62,10 +62,27 @@ export TELEGRAM_BOT_TOKEN="..."
 export TELEGRAM_CHAT_ID="..."
 ```
 
+## Testing
+
+```bash
+# Run Python tests
+source venv/bin/activate
+pytest tests/ -v
+
+# Run EdgeSignals API tests
+cd web && bun test
+```
+
+Test coverage:
+- `tests/test_paper_trader.py` — PaperTrader class, share calculations, P&L math
+- `tests/test_scanner.py` — Filtering, scoring, risk limits, Kelly criterion
+- `web/tests/api.test.ts` — EdgeSignals API endpoints
+
 ## Status
 
 - **Mode:** Paper trading (validation phase)
 - **Goal:** $10k/month
 - **EdgeSignals:** Web product at `web/`
+- **Tests:** 29 Python + API tests passing
 
 See `PROJECT.md` for full roadmap.
