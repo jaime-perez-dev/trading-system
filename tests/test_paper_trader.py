@@ -264,5 +264,109 @@ class TestPaperTraderExits:
         trader.exit_tracker.set_exit_target.assert_not_called()
 
 
+class TestPaperTraderCleanup:
+    """Test cleanup and filtering functionality"""
+    
+    @pytest.fixture
+    def trader_with_mixed_trades(self, tmp_path):
+        """Create trader with both test and real trades"""
+        with patch('paper_trader.DATA_DIR', tmp_path):
+            with patch('paper_trader.TRADES_FILE', tmp_path / "paper_trades.json"):
+                with patch('paper_trader.PolymarketClient') as mock_client, \
+                     patch('paper_trader.ExitTracker') as mock_exit_tracker:
+                    
+                    mock_client.return_value = MagicMock()
+                    mock_exit_tracker.return_value = MagicMock()
+                    
+                    trader = PaperTrader()
+                    trader.trades = [
+                        {"id": 1, "market_slug": "test-market", "status": "OPEN", "amount": 100, 
+                         "outcome": "Yes", "entry_price": 0.50, "question": "Test market question"},
+                        {"id": 2, "market_slug": "test-another", "status": "OPEN", "amount": 50,
+                         "outcome": "No", "entry_price": 0.30, "question": "Test another question"},
+                        {"id": 3, "market_slug": "real-market-ai", "status": "OPEN", "amount": 200,
+                         "outcome": "Yes", "entry_price": 0.40, "question": "Real AI market question"},
+                        {"id": 4, "market_slug": "test-closed", "status": "CLOSED", "pnl": -50, "amount": 100,
+                         "outcome": "Yes", "entry_price": 0.60, "question": "Test closed question"},
+                        {"id": 5, "market_slug": "real-closed", "status": "RESOLVED", "pnl": 75, "amount": 150,
+                         "outcome": "Yes", "entry_price": 0.25, "question": "Real closed question"},
+                    ]
+                    yield trader
+
+    def test_cleanup_dry_run_does_not_modify(self, trader_with_mixed_trades):
+        """Cleanup with dry_run=True should not modify trades"""
+        original_count = len(trader_with_mixed_trades.trades)
+        
+        result = trader_with_mixed_trades.cleanup_test_trades(dry_run=True)
+        
+        assert len(trader_with_mixed_trades.trades) == original_count
+        assert result["removed"] == 0
+        assert result["remaining"] == 2  # Two real trades
+
+    def test_cleanup_with_confirm_removes_test_trades(self, trader_with_mixed_trades):
+        """Cleanup with dry_run=False should remove test trades"""
+        result = trader_with_mixed_trades.cleanup_test_trades(dry_run=False)
+        
+        assert len(trader_with_mixed_trades.trades) == 2
+        assert result["removed"] == 3  # Three test trades removed
+        assert result["remaining"] == 2
+
+    def test_cleanup_renumbers_remaining_trades(self, trader_with_mixed_trades):
+        """After cleanup, remaining trades should have sequential IDs"""
+        trader_with_mixed_trades.cleanup_test_trades(dry_run=False)
+        
+        ids = [t["id"] for t in trader_with_mixed_trades.trades]
+        assert ids == [1, 2]  # Re-numbered from 1
+
+    def test_cleanup_only_removes_test_prefix(self, trader_with_mixed_trades):
+        """Cleanup should only remove trades where market_slug starts with 'test'"""
+        trader_with_mixed_trades.cleanup_test_trades(dry_run=False)
+        
+        slugs = [t["market_slug"] for t in trader_with_mixed_trades.trades]
+        assert "real-market-ai" in slugs
+        assert "real-closed" in slugs
+        assert not any(s.startswith("test") for s in slugs)
+
+    def test_status_exclude_test_hides_test_trades(self, trader_with_mixed_trades):
+        """status(exclude_test=True) should only count real trades"""
+        result = trader_with_mixed_trades.status(exclude_test=True)
+        
+        # Only 1 real open trade, 1 real closed trade
+        assert result["open_positions"] == 1
+        assert result["closed_trades"] == 1
+
+    def test_status_includes_all_by_default(self, trader_with_mixed_trades):
+        """status() should count all trades by default"""
+        result = trader_with_mixed_trades.status(exclude_test=False)
+        
+        # 3 open trades (2 test + 1 real), 2 closed (1 test + 1 real)
+        assert result["open_positions"] == 3
+        assert result["closed_trades"] == 2
+
+    def test_list_trades_exclude_test(self, trader_with_mixed_trades):
+        """list_trades(exclude_test=True) should only return real trades"""
+        trades = trader_with_mixed_trades.list_trades(exclude_test=True)
+        
+        assert len(trades) == 2
+        assert not any(t["market_slug"].startswith("test") for t in trades)
+
+    def test_cleanup_no_test_trades(self, tmp_path):
+        """Cleanup with no test trades should report 0 removed"""
+        with patch('paper_trader.DATA_DIR', tmp_path):
+            with patch('paper_trader.TRADES_FILE', tmp_path / "paper_trades.json"):
+                with patch('paper_trader.PolymarketClient'), \
+                     patch('paper_trader.ExitTracker'):
+                    trader = PaperTrader()
+                    trader.trades = [
+                        {"id": 1, "market_slug": "real-market", "status": "OPEN", "amount": 100,
+                         "outcome": "Yes", "entry_price": 0.50, "question": "Real market question"}
+                    ]
+                    
+                    result = trader.cleanup_test_trades(dry_run=True)
+                    
+                    assert result["removed"] == 0
+                    assert result["remaining"] == 1
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
