@@ -192,4 +192,66 @@ describe('EdgeSignals API', () => {
       expect(data.error).toContain('required')
     })
   })
+
+  describe('POST /api/dodo/checkout', () => {
+    it('rejects invalid plan', async () => {
+      const { status, data } = await api('/api/dodo/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ plan: 'invalid-plan', email: 'test@example.com' }),
+      })
+      expect(status).toBe(400)
+      expect(data.error).toContain('Invalid plan')
+    })
+
+    it('rejects missing plan', async () => {
+      const { status, data } = await api('/api/dodo/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ email: 'test@example.com' }),
+      })
+      expect(status).toBe(400)
+      expect(data.error).toContain('Invalid plan')
+    })
+
+    it('returns waitlist fallback when not configured', async () => {
+      const { status, data } = await api('/api/dodo/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ plan: 'pro', email: 'test@example.com' }),
+      })
+      // Without API keys configured, should return 503 with waitlist option
+      expect(status).toBe(503)
+      expect(data.waitlist).toBe(true)
+      expect(data.message).toContain('waitlist')
+    })
+  })
+
+  describe('POST /api/lemonsqueezy/checkout', () => {
+    it('rejects invalid plan', async () => {
+      const { status, data } = await api('/api/lemonsqueezy/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ plan: 'invalid-plan', email: 'test@example.com' }),
+      })
+      expect(status).toBe(400)
+      expect(data.error).toContain('Invalid plan')
+    })
+
+    it('rejects missing plan', async () => {
+      const { status, data } = await api('/api/lemonsqueezy/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ email: 'test@example.com' }),
+      })
+      expect(status).toBe(400)
+      expect(data.error).toContain('Invalid plan')
+    })
+
+    it('returns waitlist fallback when not configured', async () => {
+      const { status, data } = await api('/api/lemonsqueezy/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ plan: 'pro', email: 'test@example.com' }),
+      })
+      // Without API keys configured, should return 503 with waitlist option
+      expect(status).toBe(503)
+      expect(data.waitlist).toBe(true)
+      expect(data.message).toContain('waitlist')
+    })
+  })
 })
