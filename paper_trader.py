@@ -13,6 +13,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent))
 from polymarket.client import PolymarketClient
 from alerts.exit_tracker import ExitTracker
+from risk_manager import RiskManager
 
 DATA_DIR = Path(__file__).parent / "data"
 TRADES_FILE = DATA_DIR / "paper_trades.json"
@@ -24,6 +25,7 @@ class PaperTrader:
         DATA_DIR.mkdir(exist_ok=True)
         self.client = PolymarketClient()
         self.exit_tracker = ExitTracker(notify=False)  # Don't double notify on init
+        self.risk_manager = RiskManager()
         self.trades = self._load_trades()
     
     def _load_trades(self) -> List[Dict]:
@@ -70,20 +72,9 @@ class PaperTrader:
             entry_price = prices[outcome]
         
         # Risk assessment - warn on asymmetric risk
-        if entry_price > 85:
-            upside_pct = (100 - entry_price) / entry_price * 100
-            downside_pct = entry_price / entry_price * 100  # 100% loss possible
-            print(f"""
-⚠️  ASYMMETRIC RISK WARNING
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Entry at {entry_price:.1f}% means:
-  📈 Max upside: +{upside_pct:.1f}% (price to 100%)
-  📉 Max downside: -{downside_pct:.1f}% (price to 0%)
-  
-Risk/Reward: 1:{upside_pct/100:.2f} — very unfavorable
-Consider smaller position size or skip.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-""")
+        risk_warning = self.risk_manager.check_asymmetric_risk(entry_price)
+        if risk_warning:
+            print(risk_warning)
         
         # Calculate shares
         shares = (amount / entry_price) * 100  # Each share pays $1 if correct
