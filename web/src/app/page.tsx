@@ -258,67 +258,117 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Recent Alerts */}
+      {/* Recent Signals */}
       <section className="px-6 py-20 bg-zinc-900/50">
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-12">
             <Badge variant="secondary" className="mb-4 bg-green-500/10 text-green-400 border-green-500/20">
-              News Intelligence
+              Live Intelligence
             </Badge>
-            <h2 className="text-3xl font-bold">Recent Alerts</h2>
-            <p className="text-zinc-400 mt-2">Sample analysis from our monitoring system</p>
+            <h2 className="text-3xl font-bold">Recent Signals</h2>
+            <p className="text-zinc-400 mt-2">Real analysis from our monitoring system</p>
           </div>
           
-          <div className="space-y-4">
-            {exampleAlerts.map((alert) => (
-              <Card key={alert.id} className="bg-zinc-900 border-zinc-800">
-                <CardContent className="p-6">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge 
-                          variant="secondary" 
-                          className={alert.confidence === "HIGH" 
-                            ? "bg-green-500/10 text-green-400 border-green-500/20" 
-                            : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-                          }
-                        >
-                          {alert.confidence} CONFIDENCE
-                        </Badge>
-                        <span className="text-sm text-zinc-500">{alert.date}</span>
+          {signalsError && (
+            <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-center">
+              Error loading signals: {signalsError}. Showing sample data.
+            </div>
+          )}
+          
+          {signalsLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={`loading-${i}`} className="bg-zinc-900 border-zinc-800">
+                  <CardContent className="p-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-6 bg-zinc-800 rounded w-24 animate-pulse"></div>
+                          <div className="h-4 bg-zinc-800 rounded w-16 animate-pulse"></div>
+                        </div>
+                        <div className="h-5 bg-zinc-800 rounded w-3/4 mb-2 animate-pulse"></div>
+                        <div className="h-4 bg-zinc-800 rounded w-1/2 animate-pulse"></div>
                       </div>
-                      <h3 className="font-semibold text-white mb-1">{alert.headline}</h3>
-                      <p className="text-sm text-zinc-400">Related Market: {alert.market}</p>
-                    </div>
-                    <div className="flex items-center gap-6">
-                      <div className="text-center">
-                        <div className="text-sm text-zinc-500">Sentiment</div>
-                        <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                          {alert.sentiment}
-                        </Badge>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm text-zinc-500">At Alert</div>
-                        <div className="font-mono text-white">{alert.marketSentiment}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm text-zinc-500">Current</div>
-                        <div className="font-mono text-white">{alert.currentSentiment}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm text-zinc-500">Change</div>
-                        <div className="font-mono text-green-400 font-bold">{alert.change}</div>
+                      <div className="flex items-center gap-6">
+                        <div className="text-center">
+                          <div className="h-3 bg-zinc-800 rounded w-12 mb-2 animate-pulse mx-auto"></div>
+                          <div className="h-4 bg-zinc-800 rounded w-8 animate-pulse mx-auto"></div>
+                        </div>
+                        <div className="text-center">
+                          <div className="h-3 bg-zinc-800 rounded w-12 mb-2 animate-pulse mx-auto"></div>
+                          <div className="h-4 bg-zinc-800 rounded w-8 animate-pulse mx-auto"></div>
+                        </div>
+                        <div className="text-center">
+                          <div className="h-3 bg-zinc-800 rounded w-12 mb-2 animate-pulse mx-auto"></div>
+                          <div className="h-4 bg-zinc-800 rounded w-8 animate-pulse mx-auto"></div>
+                        </div>
+                        <div className="text-center">
+                          <div className="h-3 bg-zinc-800 rounded w-12 mb-2 animate-pulse mx-auto"></div>
+                          <div className="h-4 bg-zinc-800 rounded w-8 animate-pulse mx-auto"></div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {signals.map((alert) => (
+                <Card key={alert.id} className="bg-zinc-900 border-zinc-800">
+                  <CardContent className="p-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge 
+                            variant="secondary" 
+                            className={alert.confidence === "HIGH" 
+                              ? "bg-green-500/10 text-green-400 border-green-500/20" 
+                              : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                            }
+                          >
+                            {alert.confidence} CONFIDENCE
+                          </Badge>
+                          <span className="text-sm text-zinc-500">{alert.date}</span>
+                        </div>
+                        <h3 className="font-semibold text-white mb-1">{alert.headline}</h3>
+                        <p className="text-sm text-zinc-400">Related Market: {alert.market}</p>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="text-center">
+                          <div className="text-sm text-zinc-500">Sentiment</div>
+                          <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                            {alert.sentiment}
+                          </Badge>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm text-zinc-500">At Alert</div>
+                          <div className="font-mono text-white">{alert.marketSentiment}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm text-zinc-500">Current</div>
+                          <div className="font-mono text-white">{alert.currentSentiment}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm text-zinc-500">Change</div>
+                          <div className={`font-mono font-bold ${
+                            alert.change.startsWith('+') ? "text-green-400" : 
+                            alert.change.startsWith('-') ? "text-red-400" : "text-zinc-400"
+                          }`}>
+                            {alert.change}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
           
           <div className="text-center mt-8">
             <Button variant="outline" className="border-zinc-700 hover:bg-zinc-800" asChild>
-              <a href="/dashboard">View All Alerts →</a>
+              <a href="/dashboard">View All Signals →</a>
             </Button>
           </div>
         </div>
