@@ -1,0 +1,60 @@
+{
+  "generated_at": "2026-02-02T12:53:31.582883",
+  "stats": {
+    "total_trades": 2,
+    "winners": 0,
+    "losers": 2,
+    "win_rate_pct": 0.0,
+    "total_pnl": -511.57,
+    "avg_pnl": -255.79,
+    "avg_hold_time_days": 3.2,
+    "failure_categories": {
+      "timing_aggressive": 1,
+      "early_exit": 1
+    }
+  },
+  "key_lessons": [
+    "Don't bet on tight timelines from vague announcements",
+    "'Coming soon' rarely means 'next week'",
+    "Review exit criteria - was the thesis still valid?",
+    "Consider using stop-losses with trailing profit",
+    "Entry at 95.9% - only 10% upside, 100% downside"
+  ],
+  "trade_analyses": [
+    {
+      "trade_id": 1,
+      "question": "GPT ads by January 31?",
+      "outcome": "Yes",
+      "entry_price": 4.45,
+      "exit_price": 0,
+      "pnl": -500.0,
+      "pnl_pct": -100.0,
+      "won": false,
+      "reason": "OpenAI announced ads testing 'in coming weeks' - Jan 31 is 3 days away, market seems mispriced",
+      "hold_time_days": 4.368286914953704,
+      "failure_category": "timing_aggressive",
+      "lessons": [
+        "Don't bet on tight timelines from vague announcements",
+        "'Coming soon' rarely means 'next week'"
+      ]
+    },
+    {
+      "trade_id": 2,
+      "question": "GPT ads by March 31?",
+      "outcome": "Yes",
+      "entry_price": 95.9,
+      "exit_price": 90.35,
+      "pnl": -11.574556830031305,
+      "pnl_pct": -5.787278415015653,
+      "won": false,
+      "reason": "High confidence play - OpenAI confirmed ads coming, March 31 gives more runway",
+      "hold_time_days": 1.958962123449074,
+      "failure_category": "early_exit",
+      "lessons": [
+        "Review exit criteria - was the thesis still valid?",
+        "Consider using stop-losses with trailing profit",
+        "Entry at 95.9% - only 10% upside, 100% downside"
+      ]
+    }
+  ]
+}
