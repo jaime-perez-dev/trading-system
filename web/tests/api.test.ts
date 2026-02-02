@@ -254,4 +254,50 @@ describe('EdgeSignals API', () => {
       expect(data.message).toContain('waitlist')
     })
   })
+
+  describe('GET /api/health', () => {
+    it('returns health status', async () => {
+      const { status, data } = await api('/api/health')
+      expect(status).toBe(200)
+      expect(data).toHaveProperty('status')
+      expect(['healthy', 'degraded', 'unhealthy']).toContain(data.status)
+      expect(data).toHaveProperty('timestamp')
+      expect(data).toHaveProperty('uptime')
+      expect(data).toHaveProperty('checks')
+    })
+
+    it('includes memory metrics', async () => {
+      const { status, data } = await api('/api/health')
+      expect(status).toBe(200)
+      expect(data.checks).toHaveProperty('memory')
+      expect(typeof data.checks.memory.used).toBe('number')
+      expect(typeof data.checks.memory.total).toBe('number')
+      expect(typeof data.checks.memory.percentage).toBe('number')
+    })
+
+    it('is not cached', async () => {
+      const { headers } = await api('/api/health')
+      const cacheControl = headers.get('cache-control')
+      expect(cacheControl).toContain('no-cache')
+    })
+  })
+
+  describe('Rate Limiting', () => {
+    it('includes rate limit headers on API responses', async () => {
+      const { headers } = await api('/api/signals')
+      expect(headers.get('x-ratelimit-limit')).toBeTruthy()
+      expect(headers.get('x-ratelimit-remaining')).toBeTruthy()
+      expect(headers.get('x-ratelimit-reset')).toBeTruthy()
+    })
+
+    it('decrements remaining count on subsequent requests', async () => {
+      const { headers: h1 } = await api('/api/signals')
+      const remaining1 = parseInt(h1.get('x-ratelimit-remaining') || '0')
+      
+      const { headers: h2 } = await api('/api/signals')
+      const remaining2 = parseInt(h2.get('x-ratelimit-remaining') || '0')
+      
+      expect(remaining2).toBeLessThan(remaining1)
+    })
+  })
 })
