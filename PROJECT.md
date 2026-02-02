@@ -105,9 +105,9 @@ Stack: Next.js 16 + TypeScript + Tailwind CSS + shadcn/ui
 - [ ] **Timing analysis** — how fast do prices move after news?
 
 #### Day 10-11: Risk Framework (PRIORITY: HIGH)
-- [ ] **Position sizing rules** — max per trade, per market
-- [ ] **Daily loss limits** — stop trading if down X%
-- [ ] **Correlation limits** — don't overexpose to one narrative
+- [x] **Position sizing rules** — ✅ max per trade, per market (`risk_manager.py`)
+- [x] **Daily loss limits** — ✅ stop trading if down X% (percentage-based)
+- [x] **Correlation limits** — ✅ narrative/theme exposure limits
 
 #### Day 12-13: Real Trading Prep (PRIORITY: MEDIUM)
 - [x] **Research Polymarket CLOB API** — ✅ py-clob-client installed & integrated
