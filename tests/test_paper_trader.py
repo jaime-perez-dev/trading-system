@@ -25,9 +25,13 @@ class TestPaperTrader:
         """Create a PaperTrader with temp data directory"""
         with patch('paper_trader.DATA_DIR', tmp_path):
             with patch('paper_trader.TRADES_FILE', tmp_path / "paper_trades.json"):
-                # Mock the Polymarket client
-                with patch('paper_trader.PolymarketClient') as mock_client:
+                # Mock the Polymarket client and ExitTracker
+                with patch('paper_trader.PolymarketClient') as mock_client, \
+                     patch('paper_trader.ExitTracker') as mock_exit_tracker:
+                    
                     mock_client.return_value = MagicMock()
+                    mock_exit_tracker.return_value = MagicMock()
+                    
                     trader = PaperTrader()
                     trader.trades = []
                     yield trader
@@ -204,6 +208,60 @@ class TestShareCalculations:
         shares = (amount / entry) * 100  # 125 shares
         max_loss = (0.0 - entry) * shares / 100
         assert max_loss == -100.0  # Lose the full $100
+
+
+class TestPaperTraderExits:
+    """Test exit target integration in PaperTrader"""
+    
+    @pytest.fixture
+    def trader(self, tmp_path):
+        """Create trader with mocked dependencies"""
+        with patch('paper_trader.DATA_DIR', tmp_path):
+            with patch('paper_trader.TRADES_FILE', tmp_path / "paper_trades.json"):
+                with patch('paper_trader.PolymarketClient') as mock_client, \
+                     patch('paper_trader.ExitTracker') as mock_exit_tracker:
+                    
+                    mock_client.return_value = MagicMock()
+                    mock_exit_tracker.return_value = MagicMock()
+                    
+                    trader = PaperTrader()
+                    trader.trades = []
+                    yield trader
+    
+    @pytest.fixture
+    def mock_market(self):
+        return {
+            "question": "Test Market",
+            "slug": "test-market",
+            "outcomes": [{"name": "Yes", "price": 0.50}]
+        }
+
+    def test_buy_sets_exit_targets(self, trader, mock_market):
+        """Buy with exit targets should call set_exit_target"""
+        trader.client.get_market_by_slug.return_value = mock_market
+        trader.client.parse_prices.return_value = {"Yes": 0.50}
+        
+        trader.buy(
+            "test-market", "Yes", 100.0, 
+            take_profit=0.90, stop_loss=0.40, trailing_stop=5.0
+        )
+        
+        # Verify set_exit_target called with correct args
+        trader.exit_tracker.set_exit_target.assert_called_once()
+        call_args = trader.exit_tracker.set_exit_target.call_args
+        assert call_args[0][0] == 1  # trade_id
+        assert call_args[1]['take_profit'] == 0.90
+        assert call_args[1]['stop_loss'] == 0.40
+        assert call_args[1]['trailing_stop'] == 5.0
+
+    def test_buy_without_targets_does_not_call_tracker(self, trader, mock_market):
+        """Buy without exit targets should skip set_exit_target"""
+        trader.client.get_market_by_slug.return_value = mock_market
+        trader.client.parse_prices.return_value = {"Yes": 0.50}
+        
+        trader.buy("test-market", "Yes", 100.0)
+        
+        trader.exit_tracker.set_exit_target.assert_not_called()
 
 
 if __name__ == "__main__":

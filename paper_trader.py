@@ -12,6 +12,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).parent))
 from polymarket.client import PolymarketClient
+from alerts.exit_tracker import ExitTracker
 
 DATA_DIR = Path(__file__).parent / "data"
 TRADES_FILE = DATA_DIR / "paper_trades.json"
@@ -22,6 +23,7 @@ class PaperTrader:
     def __init__(self):
         DATA_DIR.mkdir(exist_ok=True)
         self.client = PolymarketClient()
+        self.exit_tracker = ExitTracker(notify=False)  # Don't double notify on init
         self.trades = self._load_trades()
     
     def _load_trades(self) -> List[Dict]:
@@ -37,7 +39,10 @@ class PaperTrader:
             json.dump(self.trades, f, indent=2)
     
     def buy(self, market_slug: str, outcome: str, amount: float, 
-            entry_price: Optional[float] = None, reason: str = "") -> Dict:
+            entry_price: Optional[float] = None, reason: str = "",
+            take_profit: Optional[float] = None,
+            stop_loss: Optional[float] = None,
+            trailing_stop: Optional[float] = None) -> Dict:
         """
         Paper buy a position
         
@@ -47,6 +52,9 @@ class PaperTrader:
             amount: Dollar amount to "spend"
             entry_price: Optional override price (otherwise fetched live)
             reason: Why we're taking this trade
+            take_profit: Price target to exit
+            stop_loss: Price target to stop loss
+            trailing_stop: Trailing stop distance in pp
         """
         # Get current market data
         market = self.client.get_market_by_slug(market_slug)
@@ -64,8 +72,9 @@ class PaperTrader:
         # Calculate shares
         shares = (amount / entry_price) * 100  # Each share pays $1 if correct
         
+        trade_id = len(self.trades) + 1
         trade = {
-            "id": len(self.trades) + 1,
+            "id": trade_id,
             "type": "BUY",
             "market_slug": market_slug,
             "question": market.get("question", "Unknown") if market else market_slug,
@@ -83,6 +92,15 @@ class PaperTrader:
         self.trades.append(trade)
         self._save_trades()
         
+        # Set exit targets if provided
+        if any([take_profit, stop_loss, trailing_stop]):
+            self.exit_tracker.set_exit_target(
+                trade_id, 
+                take_profit=take_profit, 
+                stop_loss=stop_loss, 
+                trailing_stop=trailing_stop
+            )
+        
         print(f"""
 ✅ PAPER TRADE OPENED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -93,6 +111,8 @@ class PaperTrader:
 💡 Reason: {reason}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """)
+        if trailing_stop:
+            print(f"🛡️ Trailing Stop set: {trailing_stop:.1f}pp")
         
         return trade
     
@@ -259,14 +279,22 @@ def main():
     parser.add_argument("--id", type=int, help="Trade ID")
     parser.add_argument("--won", action="store_true", help="Trade won (for resolve)")
     
+    # Exit targets
+    parser.add_argument("--tp", type=float, help="Take profit price")
+    parser.add_argument("--sl", type=float, help="Stop loss price")
+    parser.add_argument("--ts", type=float, help="Trailing stop distance (pp)")
+    
     args = parser.parse_args()
     trader = PaperTrader()
     
     if args.command == "buy":
         if not all([args.slug, args.outcome, args.amount]):
-            print("Usage: paper_trader.py buy --slug <slug> --outcome <Yes/No> --amount <$>")
+            print("Usage: paper_trader.py buy --slug <slug> --outcome <Yes/No> --amount <$> [--tp N] [--sl N] [--ts N]")
             return
-        trader.buy(args.slug, args.outcome, args.amount, args.price, args.reason)
+        trader.buy(
+            args.slug, args.outcome, args.amount, args.price, args.reason,
+            take_profit=args.tp, stop_loss=args.sl, trailing_stop=args.ts
+        )
     
     elif args.command == "close":
         if not args.id:
