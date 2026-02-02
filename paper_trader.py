@@ -69,6 +69,22 @@ class PaperTrader:
                 return {"error": f"Outcome '{outcome}' not found. Available: {list(prices.keys())}"}
             entry_price = prices[outcome]
         
+        # Risk assessment - warn on asymmetric risk
+        if entry_price > 85:
+            upside_pct = (100 - entry_price) / entry_price * 100
+            downside_pct = entry_price / entry_price * 100  # 100% loss possible
+            print(f"""
+⚠️  ASYMMETRIC RISK WARNING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Entry at {entry_price:.1f}% means:
+  📈 Max upside: +{upside_pct:.1f}% (price to 100%)
+  📉 Max downside: -{downside_pct:.1f}% (price to 0%)
+  
+Risk/Reward: 1:{upside_pct/100:.2f} — very unfavorable
+Consider smaller position size or skip.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+""")
+        
         # Calculate shares
         shares = (amount / entry_price) * 100  # Each share pays $1 if correct
         
