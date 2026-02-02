@@ -12,6 +12,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
+from correlation_tracker import CorrelationTracker
+
 DATA_DIR = Path(__file__).parent / "data"
 TRADE_ANALYSIS_FILE = DATA_DIR / "trade_analysis.json"
 
@@ -295,12 +297,57 @@ def check_recent_losses(min_trades: int = 3, max_loss_streak: int = 3) -> CheckR
     )
 
 
+def check_correlation(
+    market_name: str,
+    market_slug: str,
+    trade_amount: float,
+) -> CheckResult:
+    """
+    Check for correlation/concentration risk.
+    
+    Prevents overexposure to markets that move together (same narrative).
+    """
+    tracker = CorrelationTracker()
+    result = tracker.check_correlation(market_name, market_slug, trade_amount)
+    
+    if not result.allowed:
+        other_markets = ", ".join([p["market"][:30] for p in result.other_positions[:2]])
+        msg = result.warning or "Correlation limit exceeded"
+        if other_markets:
+            msg = f"{msg}. Correlated with: {other_markets}"
+        return CheckResult(
+            passed=False,
+            check_name="Correlation Risk",
+            message=msg,
+            severity="critical"
+        )
+    elif result.warning and "approaching" in result.warning.lower():
+        # Approaching limit warning (but still allowed)
+        return CheckResult(
+            passed=False,
+            check_name="Correlation Risk",
+            message=result.warning,
+            severity="warning"
+        )
+    
+    # Passed - no correlation issue
+    narrative_msg = f"Narrative: {result.narrative}" if result.narrative else "No correlated narrative"
+    return CheckResult(
+        passed=True,
+        check_name="Correlation Risk",
+        message=narrative_msg,
+        severity="info"
+    )
+
+
 def run_checklist(
     entry_price: float,
     trade_amount: float,
     portfolio_value: float,
     position_direction: str,
     thesis: str,
+    market_name: str = "",
+    market_slug: str = "",
     news_text: str = "",
     days_until_deadline: Optional[int] = None,
     has_stop_loss: bool = False,
@@ -317,6 +364,8 @@ def run_checklist(
             portfolio_value=10000,
             position_direction="yes",
             thesis="OpenAI announced ads coming, market hasn't priced in yet",
+            market_name="Will OpenAI launch ads by Q2?",
+            market_slug="openai-ads-q2-2026",
             news_text="OpenAI says ads coming soon",
             days_until_deadline=7
         )
@@ -330,6 +379,7 @@ def run_checklist(
         check_exit_strategy(has_stop_loss, has_take_profit, has_trailing_stop),
         check_thesis_clarity(thesis),
         check_recent_losses(),
+        check_correlation(market_name, market_slug, trade_amount),
     ]
     
     critical = [c for c in checks if not c.passed and c.severity == 'critical']
@@ -356,6 +406,8 @@ if __name__ == "__main__":
         portfolio_value=10000,
         position_direction="yes",
         thesis="High confidence play - OpenAI confirmed ads",
+        market_name="Will OpenAI launch ads by Q2 2026?",
+        market_slug="openai-ads-q2-2026",
         news_text="OpenAI says ads coming soon in the coming weeks",
         days_until_deadline=7,
         has_stop_loss=False,
