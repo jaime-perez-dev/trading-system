@@ -4,6 +4,69 @@ Base URL: `https://your-domain.com` (or `http://localhost:3000` for development)
 
 ---
 
+## Rate Limiting
+
+All API endpoints (except `/api/health` and `/api/auth/*`) are rate limited.
+
+**Default Limits:**
+| Tier | Requests/minute |
+|------|-----------------|
+| Unauthenticated | 20 |
+| Free | 10 |
+| Pro | 100 |
+| Enterprise | 1000 |
+
+**Response Headers:**
+- `X-RateLimit-Limit` - Maximum requests per window
+- `X-RateLimit-Remaining` - Remaining requests in current window
+- `X-RateLimit-Reset` - Seconds until window resets
+
+**429 Rate Limit Exceeded:**
+```json
+{
+  "error": "Rate limit exceeded",
+  "message": "Too many requests. Please retry in 45 seconds.",
+  "retryAfter": 45
+}
+```
+
+The `Retry-After` header is also included with the wait time in seconds.
+
+---
+
+## Health Check
+
+### GET /api/health
+Service health status for monitoring and load balancers.
+
+**Public:** Yes (not rate limited)
+
+**Success Response (200):**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-02-02T14:00:00.000Z",
+  "version": "1.0.0",
+  "uptime": 3600,
+  "checks": {
+    "api": "ok",
+    "dataFiles": "ok",
+    "memory": {
+      "used": 85,
+      "total": 256,
+      "percentage": 33
+    }
+  }
+}
+```
+
+**Status Values:**
+- `healthy` - All systems operational
+- `degraded` - Functional but with issues (e.g., high memory)
+- `unhealthy` (503) - Critical failure
+
+---
+
 ## Authentication
 
 Some endpoints require authentication via NextAuth session. Public endpoints are noted below.
