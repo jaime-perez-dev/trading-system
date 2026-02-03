@@ -16,6 +16,14 @@ import pytest
 # Add parent directory for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Mock py_clob_client before importing real_trader (not installed in test env)
+_mock_clob = MagicMock()
+sys.modules["py_clob_client"] = _mock_clob
+sys.modules["py_clob_client.client"] = _mock_clob
+sys.modules["py_clob_client.clob_types"] = _mock_clob
+sys.modules["py_clob_client.order_builder"] = _mock_clob
+sys.modules["py_clob_client.order_builder.constants"] = MagicMock(BUY="BUY", SELL="SELL")
+
 
 class TestTradingConfig:
     """Tests for TradingConfig class."""
