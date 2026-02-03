@@ -485,3 +485,33 @@ Currently no rate limits are enforced on the API. This may change in the future.
 | Free | $0/mo | Delayed signals (15 min), basic access |
 | Pro | $49/mo | Real-time signals, priority alerts |
 | Enterprise | $299/mo | API access, custom integrations, dedicated support |
+
+## Analytics
+
+### Google Analytics 4 (GA4)
+
+EdgeSignals integrates with Google Analytics 4 for comprehensive user behavior tracking.
+
+**Configuration:**
+- Environment variable: `NEXT_PUBLIC_GA_MEASUREMENT_ID`
+- Format: `G-XXXXXXXXXX`
+
+**Automatic Tracking:**
+- Page views
+- Site search
+- File downloads
+- Outbound clicks
+
+**Custom Events:**
+Use the `trackEvent` function to track custom interactions:
+
+```javascript
+trackEvent({
+  action: 'click',
+  category: 'Navigation',
+  label: 'Dashboard Link',
+  value: 1
+});
+```
+
+Analytics are only active when the measurement ID is configured.
