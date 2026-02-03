@@ -9,6 +9,7 @@ Next.js web application for EdgeSignals - AI-powered prediction market signals.
 - **Auth:** NextAuth.js v5
 - **Payments:** Stripe
 - **Styling:** Tailwind CSS v4
+- **Analytics:** Google Analytics 4 (gtag)
 
 ## Getting Started
 
@@ -52,6 +53,7 @@ Edit `.env.local` with your actual values:
 - `NEXTAUTH_SECRET` — Generate with `openssl rand -base64 32`
 - `NEXTAUTH_URL` — Your app URL (http://localhost:3000 for dev)
 - Stripe keys (optional for initial setup)
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID` — Google Analytics Measurement ID (optional)
 
 ### 4. Initialize Database
 
@@ -111,3 +113,49 @@ web/
 - [Prisma with Neon](https://neon.tech/docs/guides/prisma)
 - [NextAuth.js](https://authjs.dev)
 - [Stripe Integration](https://stripe.com/docs)
+
+## Google Analytics Setup
+
+EdgeSignals includes Google Analytics 4 integration for tracking user behavior and app performance.
+
+### 1. Create Google Analytics Property
+
+1. Go to [Google Analytics](https://analytics.google.com/)
+2. Create a new property or select an existing one
+3. Go to Admin → Property → Data Streams
+4. Create a new web stream for your domain
+5. Copy the Measurement ID (format: `G-XXXXXXXXXX`)
+
+### 2. Configure Environment Variables
+
+Add your Measurement ID to `.env.local`:
+
+```bash
+NEXT_PUBLIC_GA_MEASUREMENT_ID="G-XXXXXXXXXX"
+```
+
+### 3. Automatic Tracking
+
+The integration automatically tracks:
+- Page views
+- Site search (via search parameters)
+- File downloads
+- Outbound clicks
+
+### 4. Manual Event Tracking
+
+You can track custom events using the `trackEvent` function:
+
+```tsx
+import { trackEvent } from '@/hooks/useAnalytics';
+
+// Track a custom event
+trackEvent({
+  action: 'click',
+  category: 'Button',
+  label: 'CTA Button Clicked',
+  value: 1
+});
+```
+
+Analytics are only active when the `NEXT_PUBLIC_GA_MEASUREMENT_ID` environment variable is set.
